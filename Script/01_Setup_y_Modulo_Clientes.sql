@@ -88,7 +88,15 @@ BEGIN
         city.CityName AS CiudadEntrega,
         c.DeliveryPostalCode AS CodigoPostal,
         c.PhoneNumber AS Telefono,
-        c.WebsiteURL AS SitioWeb
+        c.WebsiteURL AS SitioWeb,
+        c.FaxNumber AS Fax,
+        c.PaymentDays AS DiasGraciaPago,
+        c.DeliveryAddressLine1 AS DireccionEntrega1,
+        c.DeliveryAddressLine2 AS DireccionEntrega2,
+        c.PostalAddressLine1 AS DireccionPostal1,
+        c.PostalAddressLine2 AS DireccionPostal2,
+        c.DeliveryLocation.Lat AS Latitud,
+        c.DeliveryLocation.Long AS Longitud
     FROM Syn.Customers c
     INNER JOIN Syn.CustomerCategories cc
         ON cc.CustomerCategoryID = c.CustomerCategoryID
