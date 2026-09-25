@@ -7,14 +7,43 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <main>
-    <h1>Proyecto 1 - Bases de Datos 2</h1>
-    <p>Prueba de conexión con el backend y SQL Server</p>
+  <main class="home">
+    <header class="home-header">
+      <h1>Proyecto 1 - Bases de Datos 2</h1>
+      <p>Selecciona un módulo para comenzar</p>
+    </header>
 
-    <button id="btn-test">Probar conexión a la BD</button>
-    <pre id="resultado"></pre>
+    <section class="modulos">
+      <a href="pages/clientes.html" class="modulo-card">
+        <span class="modulo-icono">👥</span>
+        <h2>Clientes</h2>
+        <p>Listado, búsqueda y detalle de clientes</p>
+      </a>
+
+      <a href="#" class="modulo-card disabled">
+        <span class="modulo-icono">🏭</span>
+        <h2>Proveedores</h2>
+        <p>Próximamente</p>
+      </a>
+
+      <a href="#" class="modulo-card disabled">
+        <span class="modulo-icono">📦</span>
+        <h2>Inventario</h2>
+        <p>Próximamente</p>
+      </a>
+
+      <a href="#" class="modulo-card disabled">
+        <span class="modulo-icono">🛒</span>
+        <h2>Ventas</h2>
+        <p>Próximamente</p>
+      </a>
+
+      <a href="#" class="modulo-card disabled">
+        <span class="modulo-icono">📊</span>
+        <h2>Estadísticas</h2>
+        <p>Próximamente</p>
+      </a>
+    </section>
   </main>
-
-  <script src="js/script.js"></script>
 </body>
 </html>

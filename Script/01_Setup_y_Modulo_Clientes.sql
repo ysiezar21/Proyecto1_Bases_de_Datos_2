@@ -52,8 +52,10 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE Api.usp_Clientes_Listar
-    @Nombre NVARCHAR(100) = NULL
+CCREATE OR ALTER PROCEDURE Api.usp_Clientes_Listar
+    @Nombre NVARCHAR(100) = NULL,
+    @CustomerCategoryID INT = NULL,
+    @DeliveryMethodID INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -66,7 +68,9 @@ BEGIN
     INNER JOIN Syn.CustomerCategories cc ON cc.CustomerCategoryID = c.CustomerCategoryID
     INNER JOIN Syn.DeliveryMethods dm ON dm.DeliveryMethodID = c.DeliveryMethodID
     WHERE (@Nombre IS NULL OR c.CustomerName LIKE '%' + @Nombre + '%')
-    ORDER BY c.CustomerName;
+      AND (@CustomerCategoryID IS NULL OR c.CustomerCategoryID = @CustomerCategoryID)
+      AND (@DeliveryMethodID IS NULL OR c.DeliveryMethodID = @DeliveryMethodID)
+    ORDER BY c.CustomerName ASC;
 END
 GO
 

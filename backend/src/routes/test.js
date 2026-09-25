@@ -14,7 +14,4 @@ router.get('/test', async (req, res) => {
   }
 });
 
-// Aquí agregarás tus consultas específicas más adelante
-// router.get('/tabla1', async (req, res) => { ... });
-
 module.exports = router;

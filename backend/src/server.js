@@ -1,7 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const consultasRouter = require('./routes/consultas');
+const testRouter = require('./routes/test');
+const clientesRouter = require('./routes/clientes');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -17,10 +18,11 @@ app.get('/api/status', (req, res) => {
   res.json({ status: 'activo' });
 });
 
-// Rutas de consultas a la BD
-app.use('/api', consultasRouter);
+// Rutas
+app.use('/api', testRouter);
+app.use('/api', clientesRouter);
 
 // Arrancar servidor
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+  console.log(`Servidor en http://localhost:${PORT}`);
 });
