@@ -31,3 +31,79 @@ GO
 IF OBJECT_ID ('Syn.Cities', 'SN') IS NOT NULL DROP SYNONYM Syn.Cities;
 CREATE SYNONYM Syn.Cities FOR Application.Cities;
 GO
+
+CREATE OR ALTER PROCEDURE Api.usp_Clientes_Categorias
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT CustomerCategoryID, CustomerCategoryName
+    FROM Syn.CustomerCategories
+    ORDER BY CustomerCategoryName;
+END
+GO
+
+CREATE OR ALTER PROCEDURE Api.usp_MetodosEntrega_Listar
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT DeliveryMethodID, DeliveryMethodName
+    FROM Syn.DeliveryMethods
+    ORDER BY DeliveryMethodName;
+END
+GO
+
+CREATE OR ALTER PROCEDURE Api.usp_Clientes_Listar
+    @Nombre NVARCHAR(100) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT
+        c.CustomerID,
+        c.CustomerName AS Nombre,
+        cc.CustomerCategoryName AS Categoria,
+        dm.DeliveryMethodName AS MetodoEntrega
+    FROM Syn.Customers c
+    INNER JOIN Syn.CustomerCategories cc ON cc.CustomerCategoryID = c.CustomerCategoryID
+    INNER JOIN Syn.DeliveryMethods dm ON dm.DeliveryMethodID = c.DeliveryMethodID
+    WHERE (@Nombre IS NULL OR c.CustomerName LIKE '%' + @Nombre + '%')
+    ORDER BY c.CustomerName;
+END
+GO
+
+CREATE OR ALTER PROCEDURE Api.usp_Clientes_Detalle
+    @CustomerID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        c.CustomerID,
+        c.CustomerName AS Nombre,
+        cc.CustomerCategoryName AS Categoria,
+        bg.BuyingGroupName AS GrupoCompra,
+        pc.FullName AS ContactoPrimario,
+        ac.FullName AS ContactoAlterno,
+        bill.CustomerName AS ClientePorFacturar,
+        dm.DeliveryMethodName AS MetodoEntrega,
+        city.CityName AS CiudadEntrega,
+        c.DeliveryPostalCode AS CodigoPostal,
+        c.PhoneNumber AS Telefono,
+        c.WebsiteURL AS SitioWeb
+    FROM Syn.Customers c
+    INNER JOIN Syn.CustomerCategories cc
+        ON cc.CustomerCategoryID = c.CustomerCategoryID
+    LEFT JOIN Syn.BuyingGroups bg
+        ON bg.BuyingGroupID = c.BuyingGroupID
+    LEFT JOIN Syn.People pc
+        ON pc.PersonID = c.PrimaryContactPersonID
+    LEFT JOIN Syn.People ac
+        ON ac.PersonID = c.AlternateContactPersonID
+    LEFT JOIN Syn.Customers bill
+        ON bill.CustomerID = c.BillToCustomerID
+    INNER JOIN Syn.DeliveryMethods dm
+        ON dm.DeliveryMethodID = c.DeliveryMethodID
+    LEFT JOIN Syn.Cities city
+        ON city.CityID = c.DeliveryCityID
+    WHERE c.CustomerID = @CustomerID;
+END
+GO
