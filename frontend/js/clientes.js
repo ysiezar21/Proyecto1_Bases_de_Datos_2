@@ -58,7 +58,7 @@ async function cargarClientes() {
       clientes.forEach(c => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><a href="detalle_clientes.html?id=${c.CustomerID}">${c.Nombre}</a></td>
+          <td><a href="detalle_clientes?id=${c.CustomerID}">${c.Nombre}</a></td>
           <td>${c.Categoria}</td>
           <td>${c.MetodoEntrega}</td>
         `;

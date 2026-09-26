@@ -52,7 +52,7 @@ BEGIN
 END
 GO
 
-CCREATE OR ALTER PROCEDURE Api.usp_Clientes_Listar
+CREATE OR ALTER PROCEDURE Api.usp_Clientes_Listar
     @Nombre NVARCHAR(100) = NULL,
     @CustomerCategoryID INT = NULL,
     @DeliveryMethodID INT = NULL
