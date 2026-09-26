@@ -1,5 +1,5 @@
-const tbody = document.querySelector('#tabla-clientes tbody');
-const tabla = document.getElementById('tabla-clientes');
+const tbody = document.querySelector('#tabla-proveedores tbody');
+const tabla = document.getElementById('tabla-proveedores');
 const cargando = document.getElementById('cargando');
 const sinResultados = document.getElementById('sin-resultados');
 const errorEl = document.getElementById('error');
@@ -11,14 +11,14 @@ const selectMetodo = document.getElementById('filtro-metodo');
 async function cargarFiltros() {
   try {
     const [categorias, metodos] = await Promise.all([
-      apiGet('/api/clientes/categorias'),
+      apiGet('/api/proveedores/categorias'),
       apiGet('/api/metodos-entrega')
     ]);
 
     categorias.forEach(c => {
       const opt = document.createElement('option');
-      opt.value = c.CustomerCategoryID;
-      opt.textContent = c.CustomerCategoryName;
+      opt.value = c.SupplierCategoryID;        // ← corregido
+      opt.textContent = c.SupplierCategoryName; // ← corregido
       selectCategoria.appendChild(opt);
     });
 
@@ -30,11 +30,12 @@ async function cargarFiltros() {
     });
   } catch (e) {
     console.error('Error cargando filtros:', e);
+    errorEl.textContent = 'Error al cargar filtros: ' + e.message;
   }
 }
 
-// Cargar clientes aplicando filtros acumulativos
-async function cargarClientes() {
+// Cargar proveedores aplicando filtros acumulativos
+async function cargarProveedores() {
   tbody.innerHTML = '';
   errorEl.textContent = '';
   sinResultados.hidden = true;
@@ -50,17 +51,17 @@ async function cargarClientes() {
   const query = params.toString() ? `?${params.toString()}` : '';
 
   try {
-    const clientes = await apiGet(`/api/clientes${query}`);
+    const proveedores = await apiGet(`/api/proveedores${query}`);
 
-    if (clientes.length === 0) {
+    if (proveedores.length === 0) {
       sinResultados.hidden = false;
     } else {
-      clientes.forEach(c => {
+      proveedores.forEach(s => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><a href="detalle_clientes?id=${c.CustomerID}">${c.Nombre}</a></td>
-          <td>${c.Categoria}</td>
-          <td>${c.MetodoEntrega}</td>
+          <td><a href="detalle_proveedores.html?id=${s.SupplierID}">${s.Nombre}</a></td>
+          <td>${s.Categoria}</td>
+          <td>${s.MetodoEntrega}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -74,24 +75,24 @@ async function cargarClientes() {
 }
 
 // Eventos
-document.getElementById('btn-buscar').addEventListener('click', cargarClientes);
+document.getElementById('btn-buscar').addEventListener('click', cargarProveedores);
 
 inputNombre.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') cargarClientes();
+  if (e.key === 'Enter') cargarProveedores();
 });
 
-selectCategoria.addEventListener('change', cargarClientes);
-selectMetodo.addEventListener('change', cargarClientes);
+selectCategoria.addEventListener('change', cargarProveedores);
+selectMetodo.addEventListener('change', cargarProveedores);
 
 document.getElementById('btn-restaurar').addEventListener('click', () => {
   inputNombre.value = '';
   selectCategoria.value = '';
   selectMetodo.value = '';
-  cargarClientes();
+  cargarProveedores();
 });
 
 // Inicializar
 (async () => {
   await cargarFiltros();
-  await cargarClientes();
+  await cargarProveedores();
 })();
