@@ -120,9 +120,6 @@ BEGIN
 END
 GO
 
--- ============================================
--- CLIENTES: Crear
--- ============================================
 CREATE OR ALTER PROCEDURE Api.usp_Clientes_Crear
     @CustomerName NVARCHAR(100),
     @CustomerCategoryID INT,
@@ -131,43 +128,37 @@ CREATE OR ALTER PROCEDURE Api.usp_Clientes_Crear
     @PrimaryContactPersonID INT,
     @PhoneNumber NVARCHAR(20) = NULL,
     @WebsiteURL NVARCHAR(256) = NULL,
-    @DeliveryAddressLine1 NVARCHAR(60) = '',
-    @DeliveryPostalCode NVARCHAR(10) = '00000',
-    @PaymentDays INT = 30,
     @NuevoCustomerID INT OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
     BEGIN TRY
         BEGIN TRANSACTION;
- 
+
         DECLARE @SistemaPersonID INT = (SELECT MIN(PersonID) FROM Syn.People);
- 
+        DECLARE @NextID INT = (SELECT ISNULL(MAX(CustomerID), 0) + 1 FROM Syn.Customers);
+
         INSERT INTO Syn.Customers (
-            CustomerName, BillToCustomerID, CustomerCategoryID,
+            CustomerID, CustomerName, BillToCustomerID, CustomerCategoryID,
             PrimaryContactPersonID, DeliveryMethodID, DeliveryCityID,
-            PostalCityID, PhoneNumber, WebsiteURL,
+            PostalCityID, AccountOpenedDate, StandardDiscountPercentage,
+            IsStatementSent, IsOnCreditHold, PaymentDays,
+            PhoneNumber, FaxNumber, WebsiteURL,
             DeliveryAddressLine1, DeliveryPostalCode,
-            PostalAddressLine1, PostalPostalCode,
-            PaymentDays, AccountOpenedDate,
-            IsStatementSent, IsOnCreditHold, LastEditedBy
+            PostalAddressLine1, PostalPostalCode, LastEditedBy
         )
         VALUES (
-            @CustomerName, NULL, @CustomerCategoryID,
+            @NextID, @CustomerName, @NextID, @CustomerCategoryID,
             @PrimaryContactPersonID, @DeliveryMethodID, @DeliveryCityID,
-            @DeliveryCityID, @PhoneNumber, @WebsiteURL,
-            @DeliveryAddressLine1, @DeliveryPostalCode,
-            @DeliveryAddressLine1, @DeliveryPostalCode,
-            @PaymentDays, GETDATE(),
-            0, 0, @SistemaPersonID
+            @DeliveryCityID, CAST(GETDATE() AS DATE), 0,
+            0, 0, 30,
+            @PhoneNumber, 'N/A', @WebsiteURL,
+            'Sin direccion', '00000',
+            'Sin direccion', '00000', @SistemaPersonID
         );
- 
-        SET @NuevoCustomerID = SCOPE_IDENTITY();
- 
-        UPDATE Syn.Customers
-        SET BillToCustomerID = @NuevoCustomerID
-        WHERE CustomerID = @NuevoCustomerID;
- 
+
+        SET @NuevoCustomerID = @NextID;
+
         COMMIT TRANSACTION;
     END TRY
     BEGIN CATCH
@@ -219,31 +210,37 @@ BEGIN
 END
 GO
  
--- ============================================
--- CLIENTES: Eliminar
--- ============================================
 CREATE OR ALTER PROCEDURE Api.usp_Clientes_Eliminar
     @CustomerID INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    BEGIN TRY
-        BEGIN TRANSACTION;
- 
-        IF NOT EXISTS (SELECT 1 FROM Syn.Customers WHERE CustomerID = @CustomerID)
-        BEGIN
-            ROLLBACK TRANSACTION;
-            THROW 50002, 'El cliente no existe.', 1;
-        END
- 
-        DELETE FROM Syn.Customers WHERE CustomerID = @CustomerID;
- 
-        COMMIT TRANSACTION;
-    END TRY
-    BEGIN CATCH
-        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
-        THROW;
-    END CATCH
+
+    IF NOT EXISTS (SELECT 1 FROM Syn.Customers WHERE CustomerID = @CustomerID)
+        THROW 50001, 'El cliente no existe.', 1;
+
+    IF EXISTS (SELECT 1 FROM Sales.CustomerTransactions WHERE CustomerID = @CustomerID)
+        THROW 50002, 'No se puede eliminar: el cliente tiene transacciones asociadas.', 1;
+
+    IF EXISTS (SELECT 1 FROM Sales.StockItemTransactions WHERE CustomerID = @CustomerID)
+        THROW 50003, 'No se puede eliminar: el cliente tiene movimientos de inventario asociados.', 1;
+
+    IF EXISTS (SELECT 1 FROM Sales.Orders WHERE CustomerID = @CustomerID)
+        THROW 50004, 'No se puede eliminar: el cliente tiene ordenes asociadas.', 1;
+
+    IF EXISTS (SELECT 1 FROM Sales.Invoices WHERE CustomerID = @CustomerID)
+        THROW 50005, 'No se puede eliminar: el cliente tiene facturas asociadas.', 1;
+
+    IF EXISTS (SELECT 1 FROM Sales.Invoices WHERE BillToCustomerID = @CustomerID)
+        THROW 50006, 'No se puede eliminar: el cliente aparece como facturador en facturas.', 1;
+
+    IF EXISTS (SELECT 1 FROM Sales.SpecialDeals WHERE CustomerID = @CustomerID)
+        THROW 50007, 'No se puede eliminar: el cliente tiene ofertas especiales asociadas.', 1;
+
+    IF EXISTS (SELECT 1 FROM Syn.Customers WHERE BillToCustomerID = @CustomerID AND CustomerID <> @CustomerID)
+        THROW 50008, 'No se puede eliminar: otros clientes facturan a este cliente.', 1;
+
+    DELETE FROM Syn.Customers WHERE CustomerID = @CustomerID;
 END
 GO
 

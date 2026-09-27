@@ -15,10 +15,13 @@ CREATE OR ALTER PROCEDURE Api.usp_Ciudades_Listar
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT CityID, CityName
-    FROM Syn.Cities
-    WHERE LatestRecordedPopulation IS NOT NULL
-    ORDER BY CityName;
+    SELECT
+        c.CityID,
+        c.CityName + ', ' + sp.StateProvinceName AS CityName
+    FROM Syn.Cities c
+    INNER JOIN Application.StateProvinces sp ON sp.StateProvinceID = c.StateProvinceID
+    WHERE c.LatestRecordedPopulation IS NOT NULL
+    ORDER BY sp.StateProvinceName, c.CityName;
 END
 GO
 

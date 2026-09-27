@@ -13,9 +13,6 @@ IF OBJECT_ID('Syn.SupplierCategories', 'SN') IS NOT NULL DROP SYNONYM Syn.Suppli
 CREATE SYNONYM Syn.SupplierCategories FOR Purchasing.SupplierCategories;
 GO
 
--- ============================================
--- SP auxiliar para poblar el combo de categorias
--- ============================================
 CREATE OR ALTER PROCEDURE Api.usp_Proveedores_Categorias
 AS
 BEGIN
@@ -26,9 +23,6 @@ BEGIN
 END
 GO
 
--- ============================================
--- SP: Listado de proveedores (nombre + categoria, orden alfabetico)
--- ============================================
 CREATE OR ALTER PROCEDURE Api.usp_Proveedores_Listar
     @Nombre NVARCHAR(100) = NULL,
     @SupplierCategoryID INT = NULL,
@@ -50,9 +44,6 @@ BEGIN
 END
 GO
 
--- ============================================
--- SP: Detalle de un proveedor (incluye datos bancarios)
--- ============================================
 CREATE OR ALTER PROCEDURE Api.usp_Proveedores_Detalle
     @SupplierID INT
 AS
@@ -90,9 +81,6 @@ BEGIN
 END
 GO
 
--- ============================================
--- PROVEEDORES: Crear
--- ============================================
 CREATE OR ALTER PROCEDURE Api.usp_Proveedores_Crear
     @SupplierName NVARCHAR(100),
     @SupplierCategoryID INT,
@@ -141,9 +129,6 @@ BEGIN
 END
 GO
 
--- ============================================
--- PROVEEDORES: Modificar
--- ============================================
 CREATE OR ALTER PROCEDURE Api.usp_Proveedores_Modificar
     @SupplierID INT,
     @SupplierName NVARCHAR(100),
@@ -183,9 +168,6 @@ BEGIN
 END
 GO
 
--- ============================================
--- PROVEEDORES: Eliminar
--- ============================================
 CREATE OR ALTER PROCEDURE Api.usp_Proveedores_Eliminar
     @SupplierID INT
 AS
@@ -210,11 +192,3 @@ BEGIN
     END CATCH
 END
 GO
-
--- ============================================
--- Pruebas rapidas (correr sueltas para probar)
--- ============================================
--- EXEC Api.usp_Proveedores_Categorias;
--- EXEC Api.usp_Proveedores_Listar;
--- EXEC Api.usp_Proveedores_Listar @Nombre = 'a';
--- EXEC Api.usp_Proveedores_Detalle @SupplierID = 1;
