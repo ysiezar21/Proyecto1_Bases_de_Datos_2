@@ -317,3 +317,75 @@ pre#error:empty {
   z-index: 1;
 }
 
+/* ============ Formularios (crear/editar) ============ */
+form.formulario {
+  background: white;
+  padding: 1.5rem 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+form.formulario label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+form.formulario input,
+form.formulario select {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+form.formulario input:focus,
+form.formulario select:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
+}
+
+form.formulario button[type="submit"] {
+  align-self: flex-start;
+  margin-top: 0.5rem;
+}
+
+/* ============ Botones de acción en el detalle ============ */
+.card.acciones {
+  display: flex;
+  gap: 0.8rem;
+  border-left-color: #95a5a6;
+}
+
+button.peligro {
+  background: #e74c3c;
+}
+
+button.peligro:hover {
+  background: #c0392b;
+}
+
+/* ============ Botón "+ Nuevo" ============ */
+.btn-nuevo {
+  display: inline-block;
+  background: #2ecc71;
+  color: white;
+  text-decoration: none;
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+  transition: background 0.2s;
+}
+
+.btn-nuevo:hover {
+  background: #27ae60;
+}

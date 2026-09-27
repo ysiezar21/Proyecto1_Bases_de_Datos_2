@@ -1,98 +1,101 @@
-const tbody = document.querySelector('#tabla-proveedores tbody');
-const tabla = document.getElementById('tabla-proveedores');
-const cargando = document.getElementById('cargando');
-const sinResultados = document.getElementById('sin-resultados');
-const errorEl = document.getElementById('error');
-const inputNombre = document.getElementById('filtro-nombre');
-const selectCategoria = document.getElementById('filtro-categoria');
-const selectMetodo = document.getElementById('filtro-metodo');
+const express = require('express');
+const { getConnection, sql } = require('../db');
 
-// Cargar selects al abrir la página
-async function cargarFiltros() {
+const router = express.Router();
+
+// GET /api/proveedores/categorias
+router.get('/proveedores/categorias', async (req, res) => {
   try {
-    const [categorias, metodos] = await Promise.all([
-      apiGet('/api/proveedores/categorias'),
-      apiGet('/api/metodos-entrega')
-    ]);
-
-    categorias.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.SupplierCategoryID;        // ← corregido
-      opt.textContent = c.SupplierCategoryName; // ← corregido
-      selectCategoria.appendChild(opt);
-    });
-
-    metodos.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m.DeliveryMethodID;
-      opt.textContent = m.DeliveryMethodName;
-      selectMetodo.appendChild(opt);
-    });
-  } catch (e) {
-    console.error('Error cargando filtros:', e);
-    errorEl.textContent = 'Error al cargar filtros: ' + e.message;
+    const pool = await getConnection();
+    const result = await pool.request()
+      .execute('Api.usp_Proveedores_Categorias');
+    res.json(result.recordset);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
-}
+});
 
-// Cargar proveedores aplicando filtros acumulativos
-async function cargarProveedores() {
-  tbody.innerHTML = '';
-  errorEl.textContent = '';
-  sinResultados.hidden = true;
-  cargando.hidden = false;
-  tabla.hidden = true;
-
-  const params = new URLSearchParams();
-  const nombre = inputNombre.value.trim();
-  if (nombre) params.append('nombre', nombre);
-  if (selectCategoria.value) params.append('categoria', selectCategoria.value);
-  if (selectMetodo.value) params.append('metodo', selectMetodo.value);
-
-  const query = params.toString() ? `?${params.toString()}` : '';
-
+// GET /api/proveedores?nombre=X&categoria=Y
+router.get('/proveedores', async (req, res) => {
   try {
-    const proveedores = await apiGet(`/api/proveedores${query}`);
+    const pool = await getConnection();
+    const result = await pool.request()
+      .input('Nombre', sql.NVarChar(100), req.query.nombre || null)
+      .input('SupplierCategoryID', sql.Int, req.query.categoria ? parseInt(req.query.categoria) : null)
+      .execute('Api.usp_Proveedores_Listar');
+    res.json(result.recordset);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-    if (proveedores.length === 0) {
-      sinResultados.hidden = false;
-    } else {
-      proveedores.forEach(s => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><a href="detalle_proveedores.html?id=${s.SupplierID}">${s.Nombre}</a></td>
-          <td>${s.Categoria}</td>
-          <td>${s.MetodoEntrega}</td>
-        `;
-        tbody.appendChild(tr);
-      });
+// GET /api/proveedores/:id
+router.get('/proveedores/:id', async (req, res) => {
+  try {
+    const pool = await getConnection();
+    const result = await pool.request()
+      .input('SupplierID', sql.Int, req.params.id)
+      .execute('Api.usp_Proveedores_Detalle');
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ error: 'Proveedor no encontrado' });
     }
-  } catch (e) {
-    errorEl.textContent = 'Error: ' + e.message;
-  } finally {
-    cargando.hidden = true;
-    tabla.hidden = false;
+    res.json(result.recordset[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
-}
-
-// Eventos
-document.getElementById('btn-buscar').addEventListener('click', cargarProveedores);
-
-inputNombre.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') cargarProveedores();
 });
 
-selectCategoria.addEventListener('change', cargarProveedores);
-selectMetodo.addEventListener('change', cargarProveedores);
+// POST /api/proveedores - crear
+router.post('/proveedores', async (req, res) => {
+  try {
+    const pool = await getConnection();
+    const request = pool.request()
+      .input('SupplierName', sql.NVarChar(100), req.body.nombre)
+      .input('SupplierCategoryID', sql.Int, req.body.categoria)
+      .input('DeliveryMethodID', sql.Int, req.body.metodo)
+      .input('DeliveryCityID', sql.Int, req.body.ciudad)
+      .input('PrimaryContactPersonID', sql.Int, req.body.contacto)
+      .input('PhoneNumber', sql.NVarChar(20), req.body.telefono || null)
+      .input('WebsiteURL', sql.NVarChar(256), req.body.sitioWeb || null)
+      .output('NuevoSupplierID', sql.Int);
 
-document.getElementById('btn-restaurar').addEventListener('click', () => {
-  inputNombre.value = '';
-  selectCategoria.value = '';
-  selectMetodo.value = '';
-  cargarProveedores();
+    const result = await request.execute('Api.usp_Proveedores_Crear');
+    res.status(201).json({ SupplierID: result.output.NuevoSupplierID });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// Inicializar
-(async () => {
-  await cargarFiltros();
-  await cargarProveedores();
-})();
+// PUT /api/proveedores/:id - modificar
+router.put('/proveedores/:id', async (req, res) => {
+  try {
+    const pool = await getConnection();
+    await pool.request()
+      .input('SupplierID', sql.Int, req.params.id)
+      .input('SupplierName', sql.NVarChar(100), req.body.nombre)
+      .input('SupplierCategoryID', sql.Int, req.body.categoria)
+      .input('DeliveryMethodID', sql.Int, req.body.metodo)
+      .input('PhoneNumber', sql.NVarChar(20), req.body.telefono || null)
+      .input('WebsiteURL', sql.NVarChar(256), req.body.sitioWeb || null)
+      .execute('Api.usp_Proveedores_Modificar');
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/proveedores/:id - eliminar
+router.delete('/proveedores/:id', async (req, res) => {
+  try {
+    const pool = await getConnection();
+    await pool.request()
+      .input('SupplierID', sql.Int, req.params.id)
+      .execute('Api.usp_Proveedores_Eliminar');
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+module.exports = router;

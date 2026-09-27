@@ -47,4 +47,56 @@ router.get('/clientes/:id', async (req, res) => {
   }
 });
 
+// POST /api/clientes - crear
+router.post('/clientes', async (req, res) => {
+  try {
+    const pool = await getConnection();
+    const request = pool.request()
+      .input('CustomerName', sql.NVarChar(100), req.body.nombre)
+      .input('CustomerCategoryID', sql.Int, req.body.categoria)
+      .input('DeliveryMethodID', sql.Int, req.body.metodo)
+      .input('DeliveryCityID', sql.Int, req.body.ciudad)
+      .input('PrimaryContactPersonID', sql.Int, req.body.contacto)
+      .input('PhoneNumber', sql.NVarChar(20), req.body.telefono || null)
+      .input('WebsiteURL', sql.NVarChar(256), req.body.sitioWeb || null)
+      .output('NuevoCustomerID', sql.Int);
+
+    const result = await request.execute('Api.usp_Clientes_Crear');
+    res.status(201).json({ CustomerID: result.output.NuevoCustomerID });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PUT /api/clientes/:id - modificar
+router.put('/clientes/:id', async (req, res) => {
+  try {
+    const pool = await getConnection();
+    await pool.request()
+      .input('CustomerID', sql.Int, req.params.id)
+      .input('CustomerName', sql.NVarChar(100), req.body.nombre)
+      .input('CustomerCategoryID', sql.Int, req.body.categoria)
+      .input('DeliveryMethodID', sql.Int, req.body.metodo)
+      .input('PhoneNumber', sql.NVarChar(20), req.body.telefono || null)
+      .input('WebsiteURL', sql.NVarChar(256), req.body.sitioWeb || null)
+      .execute('Api.usp_Clientes_Modificar');
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/clientes/:id - eliminar
+router.delete('/clientes/:id', async (req, res) => {
+  try {
+    const pool = await getConnection();
+    await pool.request()
+      .input('CustomerID', sql.Int, req.params.id)
+      .execute('Api.usp_Clientes_Eliminar');
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

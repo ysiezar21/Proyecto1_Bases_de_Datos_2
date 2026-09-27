@@ -91,6 +91,127 @@ END
 GO
 
 -- ============================================
+-- PROVEEDORES: Crear
+-- ============================================
+CREATE OR ALTER PROCEDURE Api.usp_Proveedores_Crear
+    @SupplierName NVARCHAR(100),
+    @SupplierCategoryID INT,
+    @DeliveryMethodID INT,
+    @DeliveryCityID INT,
+    @PrimaryContactPersonID INT,
+    @PhoneNumber NVARCHAR(20) = NULL,
+    @WebsiteURL NVARCHAR(256) = NULL,
+    @DeliveryAddressLine1 NVARCHAR(60) = '',
+    @DeliveryPostalCode NVARCHAR(10) = '00000',
+    @PaymentDays INT = 30,
+    @NuevoSupplierID INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        DECLARE @SistemaPersonID INT = (SELECT MIN(PersonID) FROM Syn.People);
+
+        INSERT INTO Syn.Suppliers (
+            SupplierName, SupplierCategoryID, PrimaryContactPersonID,
+            DeliveryMethodID, DeliveryCityID, PostalCityID,
+            PhoneNumber, WebsiteURL,
+            DeliveryAddressLine1, DeliveryPostalCode,
+            PostalAddressLine1, PostalPostalCode,
+            PaymentDays, LastEditedBy
+        )
+        VALUES (
+            @SupplierName, @SupplierCategoryID, @PrimaryContactPersonID,
+            @DeliveryMethodID, @DeliveryCityID, @DeliveryCityID,
+            @PhoneNumber, @WebsiteURL,
+            @DeliveryAddressLine1, @DeliveryPostalCode,
+            @DeliveryAddressLine1, @DeliveryPostalCode,
+            @PaymentDays, @SistemaPersonID
+        );
+
+        SET @NuevoSupplierID = SCOPE_IDENTITY();
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END
+GO
+
+-- ============================================
+-- PROVEEDORES: Modificar
+-- ============================================
+CREATE OR ALTER PROCEDURE Api.usp_Proveedores_Modificar
+    @SupplierID INT,
+    @SupplierName NVARCHAR(100),
+    @SupplierCategoryID INT,
+    @DeliveryMethodID INT,
+    @PhoneNumber NVARCHAR(20) = NULL,
+    @WebsiteURL NVARCHAR(256) = NULL,
+    @PaymentDays INT = 30
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        IF NOT EXISTS (SELECT 1 FROM Syn.Suppliers WHERE SupplierID = @SupplierID)
+        BEGIN
+            ROLLBACK TRANSACTION;
+            THROW 50003, 'El proveedor no existe.', 1;
+        END
+
+        UPDATE Syn.Suppliers
+        SET SupplierName = @SupplierName,
+            SupplierCategoryID = @SupplierCategoryID,
+            DeliveryMethodID = @DeliveryMethodID,
+            PhoneNumber = @PhoneNumber,
+            WebsiteURL = @WebsiteURL,
+            PaymentDays = @PaymentDays,
+            LastEditedBy = (SELECT MIN(PersonID) FROM Syn.People)
+        WHERE SupplierID = @SupplierID;
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END
+GO
+
+-- ============================================
+-- PROVEEDORES: Eliminar
+-- ============================================
+CREATE OR ALTER PROCEDURE Api.usp_Proveedores_Eliminar
+    @SupplierID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        IF NOT EXISTS (SELECT 1 FROM Syn.Suppliers WHERE SupplierID = @SupplierID)
+        BEGIN
+            ROLLBACK TRANSACTION;
+            THROW 50004, 'El proveedor no existe.', 1;
+        END
+
+        DELETE FROM Syn.Suppliers WHERE SupplierID = @SupplierID;
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END
+GO
+
+-- ============================================
 -- Pruebas rapidas (correr sueltas para probar)
 -- ============================================
 -- EXEC Api.usp_Proveedores_Categorias;

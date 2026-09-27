@@ -24,6 +24,11 @@ async function cargarDetalle() {
       : '—';
 
     detalleEl.innerHTML = `
+      <div class="card acciones">
+        <button id="btn-editar">Editar</button>
+        <button id="btn-eliminar" class="peligro">Eliminar</button>
+      </div>
+
       <div class="card">
         <h2>Información general</h2>
         <p><strong>Nombre:</strong> ${valor(c.Nombre)}</p>
@@ -62,6 +67,23 @@ async function cargarDetalle() {
         <div id="mapa" style="height: 350px; border-radius: 6px;"></div>
       </div>
     `;
+
+    // Botones de accion
+    document.getElementById('btn-editar').addEventListener('click', () => {
+      window.location.href = `cliente_form?id=${id}`;
+    });
+
+    document.getElementById('btn-eliminar').addEventListener('click', async () => {
+      const confirmar = confirm('¿Seguro que quieres eliminar este cliente? Esta acción no se puede deshacer.');
+      if (!confirmar) return;
+
+      try {
+        await apiDelete(`/api/clientes/${id}`);
+        window.location.href = 'clientes.html';
+      } catch (e) {
+        alert('Error al eliminar: ' + e.message);
+      }
+    });
 
     // Inicializar mapa
     const lat = parseFloat(c.Latitud);

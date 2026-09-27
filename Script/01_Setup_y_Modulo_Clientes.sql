@@ -120,3 +120,130 @@ BEGIN
 END
 GO
 
+-- ============================================
+-- CLIENTES: Crear
+-- ============================================
+CREATE OR ALTER PROCEDURE Api.usp_Clientes_Crear
+    @CustomerName NVARCHAR(100),
+    @CustomerCategoryID INT,
+    @DeliveryMethodID INT,
+    @DeliveryCityID INT,
+    @PrimaryContactPersonID INT,
+    @PhoneNumber NVARCHAR(20) = NULL,
+    @WebsiteURL NVARCHAR(256) = NULL,
+    @DeliveryAddressLine1 NVARCHAR(60) = '',
+    @DeliveryPostalCode NVARCHAR(10) = '00000',
+    @PaymentDays INT = 30,
+    @NuevoCustomerID INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+ 
+        DECLARE @SistemaPersonID INT = (SELECT MIN(PersonID) FROM Syn.People);
+ 
+        INSERT INTO Syn.Customers (
+            CustomerName, BillToCustomerID, CustomerCategoryID,
+            PrimaryContactPersonID, DeliveryMethodID, DeliveryCityID,
+            PostalCityID, PhoneNumber, WebsiteURL,
+            DeliveryAddressLine1, DeliveryPostalCode,
+            PostalAddressLine1, PostalPostalCode,
+            PaymentDays, AccountOpenedDate,
+            IsStatementSent, IsOnCreditHold, LastEditedBy
+        )
+        VALUES (
+            @CustomerName, NULL, @CustomerCategoryID,
+            @PrimaryContactPersonID, @DeliveryMethodID, @DeliveryCityID,
+            @DeliveryCityID, @PhoneNumber, @WebsiteURL,
+            @DeliveryAddressLine1, @DeliveryPostalCode,
+            @DeliveryAddressLine1, @DeliveryPostalCode,
+            @PaymentDays, GETDATE(),
+            0, 0, @SistemaPersonID
+        );
+ 
+        SET @NuevoCustomerID = SCOPE_IDENTITY();
+ 
+        UPDATE Syn.Customers
+        SET BillToCustomerID = @NuevoCustomerID
+        WHERE CustomerID = @NuevoCustomerID;
+ 
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END
+GO
+ 
+-- ============================================
+-- CLIENTES: Modificar
+-- ============================================
+CREATE OR ALTER PROCEDURE Api.usp_Clientes_Modificar
+    @CustomerID INT,
+    @CustomerName NVARCHAR(100),
+    @CustomerCategoryID INT,
+    @DeliveryMethodID INT,
+    @PhoneNumber NVARCHAR(20) = NULL,
+    @WebsiteURL NVARCHAR(256) = NULL,
+    @PaymentDays INT = 30
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+ 
+        IF NOT EXISTS (SELECT 1 FROM Syn.Customers WHERE CustomerID = @CustomerID)
+        BEGIN
+            ROLLBACK TRANSACTION;
+            THROW 50001, 'El cliente no existe.', 1;
+        END
+ 
+        UPDATE Syn.Customers
+        SET CustomerName = @CustomerName,
+            CustomerCategoryID = @CustomerCategoryID,
+            DeliveryMethodID = @DeliveryMethodID,
+            PhoneNumber = @PhoneNumber,
+            WebsiteURL = @WebsiteURL,
+            PaymentDays = @PaymentDays,
+            LastEditedBy = (SELECT MIN(PersonID) FROM Syn.People)
+        WHERE CustomerID = @CustomerID;
+ 
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END
+GO
+ 
+-- ============================================
+-- CLIENTES: Eliminar
+-- ============================================
+CREATE OR ALTER PROCEDURE Api.usp_Clientes_Eliminar
+    @CustomerID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+ 
+        IF NOT EXISTS (SELECT 1 FROM Syn.Customers WHERE CustomerID = @CustomerID)
+        BEGIN
+            ROLLBACK TRANSACTION;
+            THROW 50002, 'El cliente no existe.', 1;
+        END
+ 
+        DELETE FROM Syn.Customers WHERE CustomerID = @CustomerID;
+ 
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END
+GO
+
