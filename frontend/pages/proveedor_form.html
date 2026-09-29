@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="titulo-tab">Proveedor</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="../index.html">Inicio</a>
+    <a href="proveedores.html">Proveedores</a>
+  </nav>
+
+  <main>
+    <a href="proveedores.html" class="volver">← Volver a proveedores</a>
+    <h1 id="titulo">Nuevo proveedor</h1>
+
+    <form id="form-proveedor" class="formulario">
+      <label>Nombre
+        <input type="text" id="nombre" required>
+      </label>
+      <label>Categoría
+        <select id="categoria" required></select>
+      </label>
+      <label>Método de entrega
+        <select id="metodo" required></select>
+      </label>
+      <label>Ciudad de entrega
+        <select id="ciudad" required></select>
+      </label>
+      <label>Contacto primario
+        <select id="contacto" required></select>
+      </label>
+      <label>Teléfono
+        <input type="text" id="telefono">
+      </label>
+      <label>Sitio web
+        <input type="text" id="sitioWeb">
+      </label>
+
+      <button type="submit" id="btn-guardar">Guardar</button>
+    </form>
+
+    <p id="error" style="color: red;"></p>
+  </main>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/proveedor_form.js"></script>
+</body>
+</html>
