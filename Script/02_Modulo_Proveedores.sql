@@ -89,9 +89,6 @@ CREATE OR ALTER PROCEDURE Api.usp_Proveedores_Crear
     @PrimaryContactPersonID INT,
     @PhoneNumber NVARCHAR(20) = NULL,
     @WebsiteURL NVARCHAR(256) = NULL,
-    @DeliveryAddressLine1 NVARCHAR(60) = '',
-    @DeliveryPostalCode NVARCHAR(10) = '00000',
-    @PaymentDays INT = 30,
     @NuevoSupplierID INT OUTPUT
 AS
 BEGIN
@@ -100,25 +97,48 @@ BEGIN
         BEGIN TRANSACTION;
 
         DECLARE @SistemaPersonID INT = (SELECT MIN(PersonID) FROM Syn.People);
+        DECLARE @NextID INT = (SELECT ISNULL(MAX(SupplierID), 0) + 1 FROM Syn.Suppliers);
 
         INSERT INTO Syn.Suppliers (
-            SupplierName, SupplierCategoryID, PrimaryContactPersonID,
-            DeliveryMethodID, DeliveryCityID, PostalCityID,
-            PhoneNumber, WebsiteURL,
-            DeliveryAddressLine1, DeliveryPostalCode,
-            PostalAddressLine1, PostalPostalCode,
-            PaymentDays, LastEditedBy
+            SupplierID,
+            SupplierName,
+            SupplierCategoryID,
+            PrimaryContactPersonID,
+            AlternateContactPersonID,
+            DeliveryMethodID,
+            DeliveryCityID,
+            PostalCityID,
+            PaymentDays,
+            PhoneNumber,
+            FaxNumber,
+            WebsiteURL,
+            DeliveryAddressLine1,
+            DeliveryPostalCode,
+            PostalAddressLine1,
+            PostalPostalCode,
+            LastEditedBy
         )
         VALUES (
-            @SupplierName, @SupplierCategoryID, @PrimaryContactPersonID,
-            @DeliveryMethodID, @DeliveryCityID, @DeliveryCityID,
-            @PhoneNumber, @WebsiteURL,
-            @DeliveryAddressLine1, @DeliveryPostalCode,
-            @DeliveryAddressLine1, @DeliveryPostalCode,
-            @PaymentDays, @SistemaPersonID
+            @NextID,
+            @SupplierName,
+            @SupplierCategoryID,
+            @PrimaryContactPersonID,
+            @PrimaryContactPersonID,
+            @DeliveryMethodID,
+            @DeliveryCityID,
+            @DeliveryCityID,
+            30,
+            @PhoneNumber,
+            'N/A',
+            @WebsiteURL,
+            'Sin direccion',
+            '00000',
+            'Sin direccion',
+            '00000',
+            @SistemaPersonID
         );
 
-        SET @NuevoSupplierID = SCOPE_IDENTITY();
+        SET @NuevoSupplierID = @NextID;
 
         COMMIT TRANSACTION;
     END TRY
