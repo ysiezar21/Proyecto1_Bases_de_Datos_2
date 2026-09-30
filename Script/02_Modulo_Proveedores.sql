@@ -13,6 +13,18 @@ IF OBJECT_ID('Syn.SupplierCategories', 'SN') IS NOT NULL DROP SYNONYM Syn.Suppli
 CREATE SYNONYM Syn.SupplierCategories FOR Purchasing.SupplierCategories;
 GO
 
+IF OBJECT_ID('Syn.PurchaseOrders', 'SN') IS NOT NULL DROP SYNONYM Syn.PurchaseOrders;
+CREATE SYNONYM Syn.PurchaseOrders FOR Purchasing.PurchaseOrders;
+GO
+
+IF OBJECT_ID('Syn.SupplierTransactions', 'SN') IS NOT NULL DROP SYNONYM Syn.SupplierTransactions;
+CREATE SYNONYM Syn.SupplierTransactions FOR Purchasing.SupplierTransactions;
+GO
+
+IF OBJECT_ID('Syn.StockItems', 'SN') IS NOT NULL DROP SYNONYM Syn.StockItems;
+CREATE SYNONYM Syn.StockItems FOR Warehouse.StockItems;
+GO
+
 CREATE OR ALTER PROCEDURE Api.usp_Proveedores_Categorias
 AS
 BEGIN
@@ -193,14 +205,24 @@ CREATE OR ALTER PROCEDURE Api.usp_Proveedores_Eliminar
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
     BEGIN TRY
         BEGIN TRANSACTION;
 
         IF NOT EXISTS (SELECT 1 FROM Syn.Suppliers WHERE SupplierID = @SupplierID)
-        BEGIN
-            ROLLBACK TRANSACTION;
             THROW 50004, 'El proveedor no existe.', 1;
-        END
+
+        IF EXISTS (SELECT 1 FROM Syn.PurchaseOrders WHERE SupplierID = @SupplierID)
+            THROW 50011, 'No se puede eliminar: el proveedor tiene ordenes de compra asociadas.', 1;
+
+        IF EXISTS (SELECT 1 FROM Syn.SupplierTransactions WHERE SupplierID = @SupplierID)
+            THROW 50012, 'No se puede eliminar: el proveedor tiene transacciones asociadas.', 1;
+
+        IF EXISTS (SELECT 1 FROM Syn.StockItems WHERE SupplierID = @SupplierID)
+            THROW 50013, 'No se puede eliminar: el proveedor tiene productos asociados.', 1;
+
+        IF EXISTS (SELECT 1 FROM Syn.StockItemTransactions WHERE SupplierID = @SupplierID)
+            THROW 50014, 'No se puede eliminar: el proveedor tiene movimientos de inventario asociados.', 1;
 
         DELETE FROM Syn.Suppliers WHERE SupplierID = @SupplierID;
 

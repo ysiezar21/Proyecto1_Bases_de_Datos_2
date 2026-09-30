@@ -10,23 +10,13 @@ const selectMetodo = document.getElementById('filtro-metodo');
 // Cargar selects al abrir la página
 async function cargarFiltros() {
   try {
-    const [categorias, metodos] = await Promise.all([
-      apiGet('/api/proveedores/categorias'),
-      apiGet('/api/metodos-entrega')
-    ]);
+    const categorias = await apiGet('/api/proveedores/categorias');
 
     categorias.forEach(c => {
       const opt = document.createElement('option');
       opt.value = c.SupplierCategoryID;
       opt.textContent = c.SupplierCategoryName;
       selectCategoria.appendChild(opt);
-    });
-
-    metodos.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m.DeliveryMethodID;
-      opt.textContent = m.DeliveryMethodName;
-      selectMetodo.appendChild(opt);
     });
   } catch (e) {
     console.error('Error cargando filtros:', e);
@@ -45,7 +35,7 @@ async function cargarProveedores() {
   const nombre = inputNombre.value.trim();
   if (nombre) params.append('nombre', nombre);
   if (selectCategoria.value) params.append('categoria', selectCategoria.value);
-  if (selectMetodo.value) params.append('metodo', selectMetodo.value);
+  
 
   const query = params.toString() ? `?${params.toString()}` : '';
 
@@ -81,12 +71,12 @@ inputNombre.addEventListener('keydown', (e) => {
 });
 
 selectCategoria.addEventListener('change', cargarProveedores);
-selectMetodo.addEventListener('change', cargarProveedores);
+
 
 document.getElementById('btn-restaurar').addEventListener('click', () => {
   inputNombre.value = '';
   selectCategoria.value = '';
-  selectMetodo.value = '';
+  
   cargarProveedores();
 });
 

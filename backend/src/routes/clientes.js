@@ -94,8 +94,9 @@ router.delete('/clientes/:id', async (req, res) => {
       .input('CustomerID', sql.Int, req.params.id)
       .execute('Api.usp_Clientes_Eliminar');
     res.json({ ok: true });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    } catch (error) {
+    console.error('Error al eliminar cliente:', error);
+    res.status(500).json({ error: error.message || 'Error interno al eliminar el cliente' });
   }
 });
 

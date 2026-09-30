@@ -32,6 +32,30 @@ IF OBJECT_ID ('Syn.Cities', 'SN') IS NOT NULL DROP SYNONYM Syn.Cities;
 CREATE SYNONYM Syn.Cities FOR Application.Cities;
 GO
 
+IF OBJECT_ID ('Syn.CustomerTransactions', 'SN') IS NOT NULL DROP SYNONYM Syn.CustomerTransactions;
+CREATE SYNONYM Syn.CustomerTransactions FOR Sales.CustomerTransactions;
+GO
+
+IF OBJECT_ID ('Syn.StockItemTransactions', 'SN') IS NOT NULL DROP SYNONYM Syn.StockItemTransactions;
+CREATE SYNONYM Syn.StockItemTransactions FOR Warehouse.StockItemTransactions;
+GO
+
+IF OBJECT_ID ('Syn.Orders', 'SN') IS NOT NULL DROP SYNONYM Syn.Orders;
+CREATE SYNONYM Syn.Orders FOR Sales.Orders;
+GO
+
+IF OBJECT_ID ('Syn.Invoices', 'SN') IS NOT NULL DROP SYNONYM Syn.Invoices;
+CREATE SYNONYM Syn.Invoices FOR Sales.Invoices;
+GO
+
+IF OBJECT_ID ('Syn.SpecialDeals', 'SN') IS NOT NULL DROP SYNONYM Syn.SpecialDeals;
+CREATE SYNONYM Syn.SpecialDeals FOR Sales.SpecialDeals;
+GO
+
+IF OBJECT_ID ('Syn.StateProvinces', 'SN') IS NOT NULL DROP SYNONYM Syn.StateProvinces;
+CREATE SYNONYM Syn.StateProvinces FOR Application.StateProvinces;
+GO
+
 CREATE OR ALTER PROCEDURE Api.usp_Clientes_Categorias
 AS
 BEGIN
@@ -39,16 +63,6 @@ BEGIN
     SELECT CustomerCategoryID, CustomerCategoryName
     FROM Syn.CustomerCategories
     ORDER BY CustomerCategoryName;
-END
-GO
-
-CREATE OR ALTER PROCEDURE Api.usp_MetodosEntrega_Listar
-AS
-BEGIN
-    SET NOCOUNT ON;
-    SELECT DeliveryMethodID, DeliveryMethodName
-    FROM Syn.DeliveryMethods
-    ORDER BY DeliveryMethodName;
 END
 GO
 
@@ -215,32 +229,41 @@ CREATE OR ALTER PROCEDURE Api.usp_Clientes_Eliminar
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
 
-    IF NOT EXISTS (SELECT 1 FROM Syn.Customers WHERE CustomerID = @CustomerID)
-        THROW 50001, 'El cliente no existe.', 1;
+        IF NOT EXISTS (SELECT 1 FROM Syn.Customers WHERE CustomerID = @CustomerID)
+            THROW 50001, 'El cliente no existe.', 1;
 
-    IF EXISTS (SELECT 1 FROM Sales.CustomerTransactions WHERE CustomerID = @CustomerID)
-        THROW 50002, 'No se puede eliminar: el cliente tiene transacciones asociadas.', 1;
+        IF EXISTS (SELECT 1 FROM Syn.CustomerTransactions WHERE CustomerID = @CustomerID)
+            THROW 50002, 'No se puede eliminar: el cliente tiene transacciones asociadas.', 1;
 
-    IF EXISTS (SELECT 1 FROM Sales.StockItemTransactions WHERE CustomerID = @CustomerID)
-        THROW 50003, 'No se puede eliminar: el cliente tiene movimientos de inventario asociados.', 1;
+        IF EXISTS (SELECT 1 FROM Syn.StockItemTransactions WHERE CustomerID = @CustomerID)
+            THROW 50003, 'No se puede eliminar: el cliente tiene movimientos de inventario asociados.', 1;
 
-    IF EXISTS (SELECT 1 FROM Sales.Orders WHERE CustomerID = @CustomerID)
-        THROW 50004, 'No se puede eliminar: el cliente tiene ordenes asociadas.', 1;
+        IF EXISTS (SELECT 1 FROM Syn.Orders WHERE CustomerID = @CustomerID)
+            THROW 50004, 'No se puede eliminar: el cliente tiene ordenes asociadas.', 1;
 
-    IF EXISTS (SELECT 1 FROM Sales.Invoices WHERE CustomerID = @CustomerID)
-        THROW 50005, 'No se puede eliminar: el cliente tiene facturas asociadas.', 1;
+        IF EXISTS (SELECT 1 FROM Syn.Invoices WHERE CustomerID = @CustomerID)
+            THROW 50005, 'No se puede eliminar: el cliente tiene facturas asociadas.', 1;
 
-    IF EXISTS (SELECT 1 FROM Sales.Invoices WHERE BillToCustomerID = @CustomerID)
-        THROW 50006, 'No se puede eliminar: el cliente aparece como facturador en facturas.', 1;
+        IF EXISTS (SELECT 1 FROM Syn.Invoices WHERE BillToCustomerID = @CustomerID)
+            THROW 50006, 'No se puede eliminar: el cliente aparece como facturador en facturas.', 1;
 
-    IF EXISTS (SELECT 1 FROM Sales.SpecialDeals WHERE CustomerID = @CustomerID)
-        THROW 50007, 'No se puede eliminar: el cliente tiene ofertas especiales asociadas.', 1;
+        IF EXISTS (SELECT 1 FROM Syn.SpecialDeals WHERE CustomerID = @CustomerID)
+            THROW 50007, 'No se puede eliminar: el cliente tiene ofertas especiales asociadas.', 1;
 
-    IF EXISTS (SELECT 1 FROM Syn.Customers WHERE BillToCustomerID = @CustomerID AND CustomerID <> @CustomerID)
-        THROW 50008, 'No se puede eliminar: otros clientes facturan a este cliente.', 1;
+        IF EXISTS (SELECT 1 FROM Syn.Customers WHERE BillToCustomerID = @CustomerID AND CustomerID <> @CustomerID)
+            THROW 50008, 'No se puede eliminar: otros clientes facturan a este cliente.', 1;
+        
+        DELETE FROM Syn.Customers WHERE CustomerID = @CustomerID;
 
-    DELETE FROM Syn.Customers WHERE CustomerID = @CustomerID;
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
 END
 GO
-
