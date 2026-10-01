@@ -32,7 +32,7 @@ async function cargarDetalle() {
       <div class="card">
         <h2>Información general del producto</h2>
         <p><strong>Nombre:</strong> ${valor(c.Nombre)}</p>
-        <p><strong>Marca:</string> ${valor(c.Marca)}</p>
+        <p><strong>Marca:</strong> ${valor(c.Marca)}</p>
         <p><strong>Proveedor:</strong> ${valor(proveedor)}</p>
         <p><strong>Color:</strong> ${valor(c.Color)}</p>
         <p><strong>Talla:</strong> ${valor(c.Talla)}</p>

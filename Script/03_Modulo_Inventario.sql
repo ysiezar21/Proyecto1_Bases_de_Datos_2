@@ -29,6 +29,17 @@ IF OBJECT_ID('Syn.PackageTypes', 'SN') IS NOT NULL DROP SYNONYM Syn.PackageTypes
 CREATE SYNONYM Syn.PackageTypes FOR Warehouse.PackageTypes;
 GO
 
+IF OBJECT_ID('Syn.OrderLines', 'SN') IS NOT NULL DROP SYNONYM Syn.OrderLines;
+CREATE SYNONYM Syn.OrderLines FOR Sales.OrderLines;
+GO
+
+IF OBJECT_ID('Syn.InvoiceLines', 'SN') IS NOT NULL DROP SYNONYM Syn.InvoiceLines;
+CREATE SYNONYM Syn.InvoiceLines FOR Sales.InvoiceLines;
+GO
+
+IF OBJECT_ID('Syn.PurchaseOrderLines', 'SN') IS NOT NULL DROP SYNONYM Syn.PurchaseOrderLines;
+CREATE SYNONYM Syn.PurchaseOrderLines FOR Purchasing.PurchaseOrderLines;
+GO
 
 /* ============================================================
    PROCEDURES DE INVENTARIO
@@ -91,8 +102,11 @@ BEGIN
         si.StockItemName AS Nombre,
         si.SupplierID,
         sup.SupplierName AS NombreProveedor,
+        si.ColorID,
         col.ColorName AS Color,
+        si.UnitPackageID,
         upt.PackageTypeName AS UnidadEmpaque,
+        si.OuterPackageID,
         opt.PackageTypeName AS EmpaqueExterior,
         si.QuantityPerOuter AS CantidadEmpaque,
         si.Brand AS Marca,
@@ -111,5 +125,227 @@ BEGIN
     LEFT JOIN Syn.PackageTypes opt ON opt.PackageTypeID = si.OuterPackageID
     LEFT JOIN Syn.StockItemHoldings sih ON sih.StockItemID = si.StockItemID
     WHERE si.StockItemID = @StockItemID;
+END
+GO
+
+-- Combos para el formulario
+CREATE OR ALTER PROCEDURE Api.usp_Inventario_Colores
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT ColorID, ColorName
+    FROM Syn.Colors
+    ORDER BY ColorName;
+END
+GO
+
+CREATE OR ALTER PROCEDURE Api.usp_Inventario_TiposEmpaque
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT PackageTypeID, PackageTypeName
+    FROM Syn.PackageTypes
+    ORDER BY PackageTypeName;
+END
+GO
+
+CREATE OR ALTER PROCEDURE Api.usp_Inventario_Proveedores
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT SupplierID, SupplierName
+    FROM Syn.Suppliers
+    ORDER BY SupplierName;
+END
+GO
+
+
+-- Crear producto (3 tablas en una sola transaccion)
+CREATE OR ALTER PROCEDURE Api.usp_Inventario_Crear
+    @StockItemName NVARCHAR(100),
+    @SupplierID INT,
+    @UnitPackageID INT,
+    @OuterPackageID INT,
+    @QuantityPerOuter INT,
+    @TaxRate DECIMAL(18,3),
+    @UnitPrice DECIMAL(18,2),
+    @TypicalWeightPerUnit DECIMAL(18,3),
+    @StockGroupID INT,
+    @BinLocation NVARCHAR(20),
+    @ColorID INT = NULL,
+    @Brand NVARCHAR(50) = NULL,
+    @Size NVARCHAR(20) = NULL,
+    @RecommendedRetailPrice DECIMAL(18,2) = NULL,
+    @QuantityOnHand INT = 0,
+    @NuevoStockItemID INT OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        IF EXISTS (SELECT 1 FROM Syn.StockItems WHERE StockItemName = @StockItemName)
+            THROW 50021, 'Ya existe un producto con ese nombre.', 1;
+
+        IF NOT EXISTS (SELECT 1 FROM Syn.Suppliers WHERE SupplierID = @SupplierID)
+            THROW 50022, 'El proveedor no existe.', 1;
+
+        IF NOT EXISTS (SELECT 1 FROM Syn.StockGroups WHERE StockGroupID = @StockGroupID)
+            THROW 50023, 'El grupo de producto no existe.', 1;
+
+        DECLARE @SistemaPersonID INT = (SELECT MIN(PersonID) FROM Syn.People);
+        DECLARE @NextItemID INT = (SELECT ISNULL(MAX(StockItemID), 0) + 1 FROM Syn.StockItems);
+        DECLARE @NextLinkID INT = (SELECT ISNULL(MAX(StockItemStockGroupID), 0) + 1 FROM Syn.StockItemStockGroups);
+
+        INSERT INTO Syn.StockItems (
+            StockItemID, StockItemName, SupplierID, ColorID,
+            UnitPackageID, OuterPackageID, Brand, Size,
+            LeadTimeDays, QuantityPerOuter, IsChillerStock,
+            TaxRate, UnitPrice, RecommendedRetailPrice,
+            TypicalWeightPerUnit, LastEditedBy
+        )
+        VALUES (
+            @NextItemID, @StockItemName, @SupplierID, @ColorID,
+            @UnitPackageID, @OuterPackageID, @Brand, @Size,
+            7, @QuantityPerOuter, 0,
+            @TaxRate, @UnitPrice, @RecommendedRetailPrice,
+            @TypicalWeightPerUnit, @SistemaPersonID
+        );
+
+        INSERT INTO Syn.StockItemHoldings (
+            StockItemID, QuantityOnHand, BinLocation,
+            LastStocktakeQuantity, LastCostPrice,
+            ReorderLevel, TargetStockLevel, LastEditedBy
+        )
+        VALUES (
+            @NextItemID, @QuantityOnHand, @BinLocation,
+            @QuantityOnHand, @UnitPrice,
+            0, 0, @SistemaPersonID
+        );
+
+        INSERT INTO Syn.StockItemStockGroups (
+            StockItemStockGroupID, StockItemID, StockGroupID, LastEditedBy
+        )
+        VALUES (@NextLinkID, @NextItemID, @StockGroupID, @SistemaPersonID);
+
+        SET @NuevoStockItemID = @NextItemID;
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END
+GO
+
+
+-- Modificar producto (no toca los grupos)
+CREATE OR ALTER PROCEDURE Api.usp_Inventario_Modificar
+    @StockItemID INT,
+    @StockItemName NVARCHAR(100),
+    @SupplierID INT,
+    @UnitPackageID INT,
+    @OuterPackageID INT,
+    @QuantityPerOuter INT,
+    @TaxRate DECIMAL(18,3),
+    @UnitPrice DECIMAL(18,2),
+    @TypicalWeightPerUnit DECIMAL(18,3),
+    @BinLocation NVARCHAR(20),
+    @ColorID INT = NULL,
+    @Brand NVARCHAR(50) = NULL,
+    @Size NVARCHAR(20) = NULL,
+    @RecommendedRetailPrice DECIMAL(18,2) = NULL,
+    @QuantityOnHand INT = 0
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        IF NOT EXISTS (SELECT 1 FROM Syn.StockItems WHERE StockItemID = @StockItemID)
+            THROW 50024, 'El producto no existe.', 1;
+
+        IF EXISTS (SELECT 1 FROM Syn.StockItems
+                   WHERE StockItemName = @StockItemName AND StockItemID <> @StockItemID)
+            THROW 50021, 'Ya existe otro producto con ese nombre.', 1;
+
+        IF NOT EXISTS (SELECT 1 FROM Syn.Suppliers WHERE SupplierID = @SupplierID)
+            THROW 50022, 'El proveedor no existe.', 1;
+
+        DECLARE @SistemaPersonID INT = (SELECT MIN(PersonID) FROM Syn.People);
+
+        UPDATE Syn.StockItems
+        SET StockItemName = @StockItemName,
+            SupplierID = @SupplierID,
+            ColorID = @ColorID,
+            UnitPackageID = @UnitPackageID,
+            OuterPackageID = @OuterPackageID,
+            QuantityPerOuter = @QuantityPerOuter,
+            Brand = @Brand,
+            Size = @Size,
+            TaxRate = @TaxRate,
+            UnitPrice = @UnitPrice,
+            RecommendedRetailPrice = @RecommendedRetailPrice,
+            TypicalWeightPerUnit = @TypicalWeightPerUnit,
+            LastEditedBy = @SistemaPersonID
+        WHERE StockItemID = @StockItemID;
+
+        UPDATE Syn.StockItemHoldings
+        SET QuantityOnHand = @QuantityOnHand,
+            BinLocation = @BinLocation,
+            LastEditedBy = @SistemaPersonID
+        WHERE StockItemID = @StockItemID;
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END
+GO
+
+
+-- Eliminar producto (primero valida, luego borra hijos y despues el producto)
+CREATE OR ALTER PROCEDURE Api.usp_Inventario_Eliminar
+    @StockItemID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        IF NOT EXISTS (SELECT 1 FROM Syn.StockItems WHERE StockItemID = @StockItemID)
+            THROW 50025, 'El producto no existe.', 1;
+
+        IF EXISTS (SELECT 1 FROM Syn.OrderLines WHERE StockItemID = @StockItemID)
+            THROW 50026, 'No se puede eliminar: el producto tiene ordenes de venta asociadas.', 1;
+
+        IF EXISTS (SELECT 1 FROM Syn.InvoiceLines WHERE StockItemID = @StockItemID)
+            THROW 50027, 'No se puede eliminar: el producto tiene facturas asociadas.', 1;
+
+        IF EXISTS (SELECT 1 FROM Syn.PurchaseOrderLines WHERE StockItemID = @StockItemID)
+            THROW 50028, 'No se puede eliminar: el producto tiene ordenes de compra asociadas.', 1;
+
+        IF EXISTS (SELECT 1 FROM Syn.StockItemTransactions WHERE StockItemID = @StockItemID)
+            THROW 50029, 'No se puede eliminar: el producto tiene movimientos de inventario asociados.', 1;
+
+        IF EXISTS (SELECT 1 FROM Syn.SpecialDeals WHERE StockItemID = @StockItemID)
+            THROW 50030, 'No se puede eliminar: el producto tiene ofertas especiales asociadas.', 1;
+
+        DELETE FROM Syn.StockItemHoldings WHERE StockItemID = @StockItemID;
+        DELETE FROM Syn.StockItemStockGroups WHERE StockItemID = @StockItemID;
+        DELETE FROM Syn.StockItems WHERE StockItemID = @StockItemID;
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
 END
 GO

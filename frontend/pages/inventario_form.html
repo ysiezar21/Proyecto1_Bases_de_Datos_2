@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="titulo-tab">Proyecto 1 - Bases de Datos 2</title>
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="../index.html">Inicio</a>
+    <a href="inventarios.html">Inventario</a>
+  </nav>
+
+  <main>
+    <a href="inventarios.html" class="volver">← Volver a inventario</a>
+    <h1 id="titulo">Nuevo producto</h1>
+
+    <form id="form-inventario" class="formulario">
+      <label>Nombre
+        <input type="text" id="nombre" maxlength="100" required>
+      </label>
+      <label>Proveedor
+        <select id="proveedor" required></select>
+      </label>
+      <label id="label-grupo">Grupo
+        <select id="grupo" required></select>
+      </label>
+      <label>Color
+        <select id="color"></select>
+      </label>
+      <label>Marca
+        <input type="text" id="marca" maxlength="50">
+      </label>
+      <label>Talla
+        <input type="text" id="talla" maxlength="20">
+      </label>
+      <label>Unidad de empaquetamiento
+        <select id="unidadEmpaque" required></select>
+      </label>
+      <label>Empaquetamiento
+        <select id="empaqueExterior" required></select>
+      </label>
+      <label>Cantidad de empaquetamiento
+        <input type="number" id="cantidadEmpaque" min="1" step="1" required>
+      </label>
+      <label>Impuesto (%)
+        <input type="number" id="impuesto" min="0" max="100" step="0.001" required>
+      </label>
+      <label>Precio unitario
+        <input type="number" id="precioUnitario" min="0" step="0.01" required>
+      </label>
+      <label>Precio de venta
+        <input type="number" id="precioVenta" min="0" step="0.01">
+      </label>
+      <label>Peso (kg)
+        <input type="number" id="peso" min="0" step="0.001" required>
+      </label>
+      <label>Cantidad en inventario
+        <input type="number" id="cantidad" min="0" step="1" value="0" required>
+      </label>
+      <label>Ubicación
+        <input type="text" id="ubicacion" maxlength="20" required>
+      </label>
+
+      <button type="submit" id="btn-guardar">Guardar</button>
+    </form>
+
+    <p id="error" style="color: red;"></p>
+  </main>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/inventario_form.js"></script>
+</body>
+</html>

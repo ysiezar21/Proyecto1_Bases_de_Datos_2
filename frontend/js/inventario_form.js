@@ -1,0 +1,141 @@
+const params = new URLSearchParams(window.location.search);
+const id = params.get('id');
+const esEdicion = !!id;
+
+const form = document.getElementById('form-inventario');
+const tituloEl = document.getElementById('titulo');
+const errorEl = document.getElementById('error');
+const btnGuardar = document.getElementById('btn-guardar');
+
+const selectProveedor = document.getElementById('proveedor');
+const selectGrupo = document.getElementById('grupo');
+const selectColor = document.getElementById('color');
+const selectUnidad = document.getElementById('unidadEmpaque');
+const selectEmpaque = document.getElementById('empaqueExterior');
+
+function llenarSelect(select, items, valueKey, textKey) {
+  items.forEach(item => {
+    const opt = document.createElement('option');
+    opt.value = item[valueKey];
+    opt.textContent = item[textKey];
+    select.appendChild(opt);
+  });
+}
+
+// Pone el valor en un input; si viene null/undefined deja vacio
+function ponerValor(elId, valor) {
+  document.getElementById(elId).value = valor ?? '';
+}
+
+async function inicializar() {
+  try {
+    const [proveedores, grupos, colores, empaques] = await Promise.all([
+      apiGet('/api/inventarios/proveedores'),
+      apiGet('/api/inventarios/grupos'),
+      apiGet('/api/inventarios/colores'),
+      apiGet('/api/inventarios/tipos-empaque')
+    ]);
+
+    llenarSelect(selectProveedor, proveedores, 'SupplierID', 'SupplierName');
+    llenarSelect(selectGrupo, grupos, 'StockGroupID', 'StockGroupName');
+    llenarSelect(selectUnidad, empaques, 'PackageTypeID', 'PackageTypeName');
+    llenarSelect(selectEmpaque, empaques, 'PackageTypeID', 'PackageTypeName');
+
+    // El color es opcional: primera opcion vacia
+    const sinColor = document.createElement('option');
+    sinColor.value = '';
+    sinColor.textContent = 'Sin color';
+    selectColor.appendChild(sinColor);
+    llenarSelect(selectColor, colores, 'ColorID', 'ColorName');
+
+    if (esEdicion) {
+      tituloEl.textContent = 'Editar producto';
+      document.getElementById('titulo-tab').textContent = 'Editar producto';
+
+      // El grupo solo se elige al crear (el procedimiento de modificar no lo toca)
+      selectGrupo.disabled = true;
+      document.getElementById('label-grupo').hidden = true;
+
+      const p = await apiGet(`/api/inventarios/${id}`);
+      ponerValor('nombre', p.Nombre);
+      ponerValor('marca', p.Marca);
+      ponerValor('talla', p.Talla);
+      ponerValor('cantidadEmpaque', p.CantidadEmpaque);
+      ponerValor('impuesto', p.Impuesto);
+      ponerValor('precioUnitario', p.PrecioUnitario);
+      ponerValor('precioVenta', p.PrecioVenta);
+      ponerValor('peso', p.Peso);
+      ponerValor('cantidad', p.CantidadDisponible);
+      ponerValor('ubicacion', p.Ubicacion);
+
+      // Los combos se preseleccionan por ID (el detalle ya los devuelve)
+      selectProveedor.value = p.SupplierID ?? '';
+      selectColor.value = p.ColorID ?? '';
+      selectUnidad.value = p.UnitPackageID ?? '';
+      selectEmpaque.value = p.OuterPackageID ?? '';
+    }
+  } catch (e) {
+    errorEl.textContent = 'Error cargando datos: ' + e.message;
+  }
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errorEl.textContent = '';
+
+  const nombre = document.getElementById('nombre').value.trim();
+  const ubicacion = document.getElementById('ubicacion').value.trim();
+  const precioUnitario = parseFloat(document.getElementById('precioUnitario').value);
+  const precioVentaTxt = document.getElementById('precioVenta').value;
+
+  // Validaciones que el HTML no cubre
+  if (!nombre) {
+    errorEl.textContent = 'El nombre no puede estar vacío.';
+    return;
+  }
+  if (!ubicacion) {
+    errorEl.textContent = 'La ubicación no puede estar vacía.';
+    return;
+  }
+  if (precioVentaTxt !== '' && parseFloat(precioVentaTxt) < precioUnitario) {
+    errorEl.textContent = 'El precio de venta no puede ser menor al precio unitario.';
+    return;
+  }
+
+  const body = {
+    nombre,
+    proveedor: parseInt(selectProveedor.value),
+    color: selectColor.value ? parseInt(selectColor.value) : null,
+    marca: document.getElementById('marca').value.trim(),
+    talla: document.getElementById('talla').value.trim(),
+    unidadEmpaque: parseInt(selectUnidad.value),
+    empaqueExterior: parseInt(selectEmpaque.value),
+    cantidadEmpaque: parseInt(document.getElementById('cantidadEmpaque').value),
+    impuesto: parseFloat(document.getElementById('impuesto').value),
+    precioUnitario,
+    precioVenta: precioVentaTxt === '' ? null : parseFloat(precioVentaTxt),
+    peso: parseFloat(document.getElementById('peso').value),
+    cantidad: parseInt(document.getElementById('cantidad').value),
+    ubicacion
+  };
+
+  if (!esEdicion) {
+    body.grupo = parseInt(selectGrupo.value);
+  }
+
+  btnGuardar.disabled = true;
+  try {
+    if (esEdicion) {
+      await apiPut(`/api/inventarios/${id}`, body);
+      window.location.href = `detalle_inventarios?id=${id}`;
+    } else {
+      const resultado = await apiPost('/api/inventarios', body);
+      window.location.href = `detalle_inventarios?id=${resultado.StockItemID}`;
+    }
+  } catch (e) {
+    errorEl.textContent = 'Error al guardar: ' + e.message;
+    btnGuardar.disabled = false;
+  }
+});
+
+inicializar();
