@@ -389,3 +389,28 @@ button.peligro:hover {
 .btn-nuevo:hover {
   background: #27ae60;
 }
+
+
+/* ============ Paginación y etiquetas de filtros ============ */
+.paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.paginacion[hidden] {
+  display: none;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.filtros label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}

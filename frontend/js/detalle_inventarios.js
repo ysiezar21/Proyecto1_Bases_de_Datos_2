@@ -38,7 +38,7 @@ async function cargarDetalle() {
         <p><strong>Talla:</strong> ${valor(c.Talla)}</p>
         <p><strong>Peso:</strong> ${valor(c.Peso)} <strong>kg</strong></p>
         <p><strong>Cantidad disponible:</strong> ${valor(c.CantidadDisponible)}</p>
-        <p><strong>Palabras clave:</strong> ${valor(c.PalabrasClaves) === '—' ? '—' : c.PalabrasClaves.split(/\s+/).filter(Boolean).join(', ')}</p>
+        <p><strong>Palabras clave:</strong> ${valor(c.PalabrasClaves)}</p>
       </div>
 
       <div class="card">

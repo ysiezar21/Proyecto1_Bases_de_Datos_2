@@ -1,10 +1,9 @@
 USE WideWorldImporters;
 GO
 
--- ============================================
--- Synonyms nuevos para Proveedores
--- (Syn.People, Syn.DeliveryMethods y Syn.Cities ya existen del modulo de Clientes)
--- ============================================
+/* ============================================================
+   SINÓNIMOS PARA PROVEEDORES
+   ============================================================ */
 IF OBJECT_ID('Syn.Suppliers', 'SN') IS NOT NULL DROP SYNONYM Syn.Suppliers;
 CREATE SYNONYM Syn.Suppliers FOR Purchasing.Suppliers;
 GO

@@ -115,7 +115,7 @@ BEGIN
         si.UnitPrice AS PrecioUnitario,
         si.RecommendedRetailPrice AS PrecioVenta,
         si.TypicalWeightPerUnit AS Peso,
-        si.SearchDetails AS PalabrasClaves,
+        REPLACE(si.SearchDetails, ' ', ', ') AS PalabrasClaves,
         ISNULL(sih.QuantityOnHand, 0) AS CantidadDisponible,
         sih.BinLocation AS Ubicacion
     FROM Syn.StockItems si
