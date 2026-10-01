@@ -9,23 +9,19 @@
 <body>
   <nav class="navbar">
     <a href="../index.html">Inicio</a>
-    <a href="clientes.html">Clientes</a>
+    <a href="inventarios.html">Inventario</a>
   </nav>
 
   <main>
-    <h1>Gestión de clientes</h1>
+    <h1>Gestión de inventario</h1>
 
-    <a href="cliente_form.html" class="btn-nuevo">+ Nuevo cliente</a>
+    <a href="inventarios_form.html" class="btn-nuevo">+ Nuevo producto</a>
 
     <div class="filtros">
       <input type="text" id="filtro-nombre" placeholder="Buscar por nombre...">
 
-      <select id="filtro-categoria">
-        <option value="">Todas las categorías</option>
-      </select>
-
-      <select id="filtro-metodo">
-        <option value="">Todos los métodos de entrega</option>
+      <select id="filtro-grupo">
+        <option value="">Todos los grupos</option>
       </select>
 
       <button id="btn-buscar">Buscar</button>
@@ -34,22 +30,22 @@
 
     <div id="cargando">Cargando...</div>
 
-    <table id="tabla-clientes" hidden>
+    <table id="tabla-inventarios" hidden>
       <thead>
         <tr>
           <th>Nombre</th>
-          <th>Categoría</th>
-          <th>Método de entrega</th>
+          <th>Grupo/s</th>
+          <th>Cantidad en inventarios</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
 
-    <p id="sin-resultados" hidden>No se encontraron clientes con esos filtros.</p>
+    <p id="sin-resultados" hidden>No se encontraron productos con esos filtros.</p>
     <pre id="error"></pre>
   </main>
 
   <script src="../js/api.js"></script>
-  <script src="../js/clientes.js"></script>
+  <script src="../js/inventarios.js"></script>
 </body>
 </html>
