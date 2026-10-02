@@ -7,7 +7,9 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'Api')
     EXEC('CREATE SCHEMA Api');
 GO
-
+/* ============================================================
+   SINÓNIMOS PARA CLIENTES
+   ============================================================ */
 IF OBJECT_ID('Syn.Customers', 'SN') IS NOT NULL DROP SYNONYM Syn.Customers;
 CREATE SYNONYM Syn.Customers FOR Sales.Customers;
 GO
