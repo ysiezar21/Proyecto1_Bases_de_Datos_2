@@ -193,26 +193,31 @@ BEGIN
     SET NOCOUNT ON;
 
     SELECT
-        sg.StockGroupName AS Categoria,
-        SUM(CASE WHEN v.Anio = 2013 THEN v.Monto ELSE 0 END) AS [2013],
-        SUM(CASE WHEN v.Anio = 2014 THEN v.Monto ELSE 0 END) AS [2014],
-        SUM(CASE WHEN v.Anio = 2015 THEN v.Monto ELSE 0 END) AS [2015],
-        SUM(CASE WHEN v.Anio = 2016 THEN v.Monto ELSE 0 END) AS [2016],
-        SUM(v.Monto) AS Total
+        StockGroupName AS Categoria,
+        ISNULL([2013], 0) AS [2013],
+        ISNULL([2014], 0) AS [2014],
+        ISNULL([2015], 0) AS [2015],
+        ISNULL([2016], 0) AS [2016],
+        ISNULL([2013], 0) + ISNULL([2014], 0) + ISNULL([2015], 0) + ISNULL([2016], 0) AS Total
     FROM (
-        SELECT il.StockItemID, YEAR(i.InvoiceDate) AS Anio, SUM(il.ExtendedPrice) AS Monto
+        SELECT
+            sg.StockGroupName,
+            YEAR(i.InvoiceDate) AS Anio,
+            il.ExtendedPrice AS Monto
         FROM Syn.InvoiceLines il
         INNER JOIN Syn.Invoices i ON i.InvoiceID = il.InvoiceID
-        GROUP BY il.StockItemID, YEAR(i.InvoiceDate)
-    ) v
-    INNER JOIN Syn.StockItemStockGroups sisg ON sisg.StockItemID = v.StockItemID
-    INNER JOIN Syn.StockGroups sg ON sg.StockGroupID = sisg.StockGroupID
-    GROUP BY sg.StockGroupName
-    ORDER BY sg.StockGroupName;
+        INNER JOIN Syn.StockItemStockGroups sisg ON sisg.StockItemID = il.StockItemID
+        INNER JOIN Syn.StockGroups sg ON sg.StockGroupID = sisg.StockGroupID
+    ) AS SourceTable
+    PIVOT (
+        SUM(Monto)
+        FOR Anio IN ([2013], [2014], [2015], [2016])
+    ) AS PivotTable
+    ORDER BY StockGroupName;
 END
 GO
 
--- Productos para el filtro de subcategoría, opcionalmente por grupo
+-- Productos para el filtro de productos
 CREATE OR ALTER PROCEDURE Api.usp_Estadisticas_Productos
     @StockGroupID INT = NULL
 AS
@@ -228,11 +233,45 @@ BEGIN
 END
 GO
 
+-- Categorias para el filtro de subcategorias
+CREATE OR ALTER PROCEDURE Api.usp_Estadisticas_SubGrupos
+    @StockGroupID INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Si no se pasa grupo, devuelve todos los grupos
+    IF @StockGroupID IS NULL
+    BEGIN
+        SELECT StockGroupID, StockGroupName
+        FROM Syn.StockGroups
+        ORDER BY StockGroupName;
+        RETURN;
+    END
+
+    -- Si se pasa grupo, devuelve solo los grupos que comparten
+    -- al menos un producto con el grupo dado (excluyendo el mismo)
+    SELECT DISTINCT sg.StockGroupID, sg.StockGroupName
+    FROM Syn.StockGroups sg
+    WHERE sg.StockGroupID <> @StockGroupID
+      AND EXISTS (
+          SELECT 1
+          FROM Syn.StockItemStockGroups sisg1
+          INNER JOIN Syn.StockItemStockGroups sisg2
+              ON sisg2.StockItemID = sisg1.StockItemID
+          WHERE sisg1.StockGroupID = @StockGroupID
+            AND sisg2.StockGroupID = sg.StockGroupID
+      )
+    ORDER BY sg.StockGroupName;
+END
+GO
+
 -- Reporte 7: seguimiento mensual de compras de clientes con paginación
 CREATE OR ALTER PROCEDURE Api.usp_Estadisticas_SeguimientoClientes
     @Anio INT = NULL,
     @Mes INT = NULL,
     @StockGroupID INT = NULL,
+    @StockSubGroupID INT = NULL,
     @StockItemID INT = NULL,
     @Pagina INT = 1,
     @TamanoPagina INT = 50
@@ -272,6 +311,9 @@ BEGIN
           AND (@StockGroupID IS NULL OR EXISTS (
                 SELECT 1 FROM Syn.StockItemStockGroups sg
                 WHERE sg.StockItemID = il.StockItemID AND sg.StockGroupID = @StockGroupID))
+          AND (@StockSubGroupID IS NULL OR EXISTS (
+                SELECT 1 FROM Syn.StockItemStockGroups sg
+                WHERE sg.StockItemID = il.StockItemID AND sg.StockGroupID = @StockSubGroupID))
         GROUP BY i.CustomerID, YEAR(i.InvoiceDate), MONTH(i.InvoiceDate)
     ) g
     INNER JOIN Syn.Customers c ON c.CustomerID = g.CustomerID
@@ -286,6 +328,7 @@ CREATE OR ALTER PROCEDURE Api.usp_Estadisticas_SeguimientoProveedores
     @Anio INT = NULL,
     @Mes INT = NULL,
     @StockGroupID INT = NULL,
+    @StockSubGroupID INT = NULL,
     @StockItemID INT = NULL,
     @Pagina INT = 1,
     @TamanoPagina INT = 50
@@ -325,11 +368,116 @@ BEGIN
           AND (@StockGroupID IS NULL OR EXISTS (
                 SELECT 1 FROM Syn.StockItemStockGroups sg
                 WHERE sg.StockItemID = pol.StockItemID AND sg.StockGroupID = @StockGroupID))
+          AND (@StockSubGroupID IS NULL OR EXISTS (
+                SELECT 1 FROM Syn.StockItemStockGroups sg
+                WHERE sg.StockItemID = pol.StockItemID AND sg.StockGroupID = @StockSubGroupID))
         GROUP BY po.SupplierID, YEAR(po.OrderDate), MONTH(po.OrderDate)
     ) g
     INNER JOIN Syn.Suppliers s ON s.SupplierID = g.SupplierID
     ORDER BY s.SupplierName, g.SupplierID, g.Anio, g.Mes
     OFFSET (@Pagina - 1) * @TamanoPagina ROWS
     FETCH NEXT @TamanoPagina ROWS ONLY;
+END
+GO
+
+-- Reporte 9: rotacion promedio (en dias) del inventario por producto
+CREATE OR ALTER PROCEDURE Api.usp_Estadisticas_RotacionInventario
+    @StockGroupID INT = NULL,
+    @Anio INT = NULL,
+    @SupplierID INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        si.StockItemID,
+        si.StockItemName AS Producto,
+        sup.SupplierName AS Proveedor,
+        STUFF((
+            SELECT ', ' + sg.StockGroupName
+            FROM Syn.StockItemStockGroups sisg
+            INNER JOIN Syn.StockGroups sg ON sg.StockGroupID = sisg.StockGroupID
+            WHERE sisg.StockItemID = si.StockItemID
+            FOR XML PATH('')
+        ), 1, 2, '') AS Categoria,
+        ISNULL(sih.QuantityOnHand, 0) AS CantidadEnMano,
+        ISNULL(SUM(il.Quantity), 0) AS CantidadVendida,
+        ISNULL(SUM(il.LineProfit), 0) AS GananciaTotal,
+        CASE
+        WHEN ISNULL(SUM(il.Quantity), 0) = 0 THEN NULL
+        ELSE CAST(
+            ISNULL(sih.QuantityOnHand, 0) * 
+            DATEDIFF(DAY, MIN(i.InvoiceDate), MAX(i.InvoiceDate)) * 1.0
+            / SUM(il.Quantity)
+        AS DECIMAL(10, 2))
+    END AS DiasRotacion
+    FROM Syn.StockItems si
+    LEFT JOIN Syn.StockItemHoldings sih ON sih.StockItemID = si.StockItemID
+    LEFT JOIN Syn.Suppliers sup ON sup.SupplierID = si.SupplierID
+    LEFT JOIN Syn.InvoiceLines il ON il.StockItemID = si.StockItemID
+    LEFT JOIN Syn.Invoices i ON i.InvoiceID = il.InvoiceID
+    WHERE (@SupplierID IS NULL OR si.SupplierID = @SupplierID)
+      AND (@Anio IS NULL OR i.InvoiceDate IS NULL OR YEAR(i.InvoiceDate) = @Anio)
+      AND (@StockGroupID IS NULL OR EXISTS (
+            SELECT 1 FROM Syn.StockItemStockGroups sg2
+            WHERE sg2.StockItemID = si.StockItemID AND sg2.StockGroupID = @StockGroupID))
+    GROUP BY si.StockItemID, si.StockItemName, sup.SupplierName, sih.QuantityOnHand
+    HAVING ISNULL(SUM(il.Quantity), 0) > 0
+    ORDER BY DiasRotacion ASC, si.StockItemName;
+END
+GO
+
+-- Reporte 10: Metodo de envio favorito por ubicacion
+CREATE OR ALTER PROCEDURE Api.usp_Estadisticas_MetodoEnvioFavorito
+    @Anio INT = NULL,
+    @Mes INT = NULL,
+    @CustomerCategoryID INT = NULL,
+    @StockGroupID INT = NULL,
+    @StockItemID INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    WITH VentasFiltradas AS (
+        SELECT
+            i.InvoiceID,
+            i.DeliveryMethodID,
+            c.DeliveryCityID,
+            il.StockItemID
+        FROM Syn.Invoices i
+        INNER JOIN Syn.InvoiceLines il ON il.InvoiceID = i.InvoiceID
+        INNER JOIN Syn.Customers c ON c.CustomerID = i.CustomerID
+        WHERE (@Anio IS NULL OR YEAR(i.InvoiceDate) = @Anio)
+          AND (@Mes IS NULL OR MONTH(i.InvoiceDate) = @Mes)
+          AND (@CustomerCategoryID IS NULL OR c.CustomerCategoryID = @CustomerCategoryID)
+          AND (@StockItemID IS NULL OR il.StockItemID = @StockItemID)
+          AND (@StockGroupID IS NULL OR EXISTS (
+                SELECT 1 FROM Syn.StockItemStockGroups sg
+                WHERE sg.StockItemID = il.StockItemID AND sg.StockGroupID = @StockGroupID))
+    ),
+    Conteo AS (
+        SELECT
+            v.DeliveryCityID,
+            v.DeliveryMethodID,
+            COUNT(DISTINCT v.InvoiceID) AS CantidadVentas,
+            DENSE_RANK() OVER (
+                PARTITION BY v.DeliveryCityID
+                ORDER BY COUNT(DISTINCT v.InvoiceID) DESC
+            ) AS Posicion
+        FROM VentasFiltradas v
+        GROUP BY v.DeliveryCityID, v.DeliveryMethodID
+    )
+    SELECT
+        city.CityName AS Ciudad,
+        sp.StateProvinceName AS Estado,
+        dm.DeliveryMethodName AS MetodoEnvio,
+        c.CantidadVentas,
+        c.Posicion
+    FROM Conteo c
+    INNER JOIN Syn.Cities city ON city.CityID = c.DeliveryCityID
+    LEFT JOIN Application.StateProvinces sp ON sp.StateProvinceID = city.StateProvinceID
+    INNER JOIN Syn.DeliveryMethods dm ON dm.DeliveryMethodID = c.DeliveryMethodID
+    WHERE c.Posicion = 1
+    ORDER BY c.CantidadVentas DESC, city.CityName;
 END
 GO
