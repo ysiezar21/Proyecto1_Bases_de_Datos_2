@@ -25,17 +25,21 @@ function texto(idCampo) {
 
 // Llena un select; la primera opción es el texto de ayuda
 function llenarSelect(select, items, valueKey, textKey, textoVacio) {
+  const fragmento = document.createDocumentFragment();
+
   const vacio = document.createElement('option');
   vacio.value = '';
   vacio.textContent = textoVacio;
-  select.appendChild(vacio);
+  fragmento.appendChild(vacio);
 
   items.forEach(item => {
     const opt = document.createElement('option');
     opt.value = item[valueKey];
     opt.textContent = item[textKey];
-    select.appendChild(opt);
+    fragmento.appendChild(opt);
   });
+
+  select.appendChild(fragmento);
 }
 
 async function inicializar() {
