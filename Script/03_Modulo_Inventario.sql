@@ -60,35 +60,52 @@ GO
 -- Listar productos con filtros acumulativos
 CREATE OR ALTER PROCEDURE Api.usp_Inventario_Listar
     @Nombre NVARCHAR(100) = NULL,
-    @StockGroupID INT = NULL
+    @StockGroupID INT = NULL,
+    @Pagina INT = 1,
+    @TamanoPagina INT = 50
 AS
 BEGIN
     SET NOCOUNT ON;
 
+    IF @Pagina < 1 SET @Pagina = 1;
+    IF @TamanoPagina < 1 SET @TamanoPagina = 50;
+
+    -- Primero se filtra y pagina; los grupos se arman solo para esas filas
+    WITH Pagina AS (
+        SELECT
+            si.StockItemID,
+            si.StockItemName,
+            ISNULL(sih.QuantityOnHand, 0) AS CantidadInventario,
+            COUNT(*) OVER() AS TotalRegistros
+        FROM Syn.StockItems si
+        LEFT JOIN Syn.StockItemHoldings sih ON sih.StockItemID = si.StockItemID
+        WHERE (@Nombre IS NULL OR si.StockItemName LIKE '%' + @Nombre + '%')
+          AND (@StockGroupID IS NULL OR EXISTS (
+              SELECT 1
+              FROM Syn.StockItemStockGroups sisg2
+              WHERE sisg2.StockItemID = si.StockItemID
+                AND sisg2.StockGroupID = @StockGroupID
+          ))
+        ORDER BY si.StockItemName ASC, si.StockItemID ASC
+        OFFSET CAST(@Pagina - 1 AS BIGINT) * @TamanoPagina ROWS
+        FETCH NEXT @TamanoPagina ROWS ONLY
+    )
     SELECT
-        si.StockItemID,
-        si.StockItemName AS Nombre,
+        p.StockItemID,
+        p.StockItemName AS Nombre,
         STUFF((
             SELECT ', ' + sg.StockGroupName
             FROM Syn.StockItemStockGroups sisg
             INNER JOIN Syn.StockGroups sg ON sg.StockGroupID = sisg.StockGroupID
-            WHERE sisg.StockItemID = si.StockItemID
+            WHERE sisg.StockItemID = p.StockItemID
             FOR XML PATH('')
         ), 1, 2, '') AS Grupo,
-        ISNULL(sih.QuantityOnHand, 0) AS CantidadInventario
-    FROM Syn.StockItems si
-    LEFT JOIN Syn.StockItemHoldings sih ON sih.StockItemID = si.StockItemID
-    WHERE (@Nombre IS NULL OR si.StockItemName LIKE '%' + @Nombre + '%')
-      AND (@StockGroupID IS NULL OR EXISTS (
-          SELECT 1
-          FROM Syn.StockItemStockGroups sisg2
-          WHERE sisg2.StockItemID = si.StockItemID
-            AND sisg2.StockGroupID = @StockGroupID
-      ))
-    ORDER BY si.StockItemName ASC;
+        p.CantidadInventario,
+        p.TotalRegistros
+    FROM Pagina p
+    ORDER BY p.StockItemName ASC, p.StockItemID ASC;
 END
 GO
-
 
 -- Detalle completo del producto
 CREATE OR ALTER PROCEDURE Api.usp_Inventario_Detalle

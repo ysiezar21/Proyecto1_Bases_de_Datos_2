@@ -37,21 +37,30 @@ GO
 CREATE OR ALTER PROCEDURE Api.usp_Proveedores_Listar
     @Nombre NVARCHAR(100) = NULL,
     @SupplierCategoryID INT = NULL,
-    @DeliveryMethodID INT = NULL
+    @DeliveryMethodID INT = NULL,
+    @Pagina INT = 1,
+    @TamanoPagina INT = 50
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    IF @Pagina < 1 SET @Pagina = 1;
+    IF @TamanoPagina < 1 SET @TamanoPagina = 50;
+
     SELECT
         s.SupplierID,
         s.SupplierName AS Nombre,
         sc.SupplierCategoryName AS Categoria,
-        dm.DeliveryMethodName AS MetodoEntrega
+        dm.DeliveryMethodName AS MetodoEntrega,
+        COUNT(*) OVER() AS TotalRegistros
     FROM Syn.Suppliers s
     LEFT JOIN Syn.SupplierCategories sc ON sc.SupplierCategoryID = s.SupplierCategoryID
     LEFT JOIN Syn.DeliveryMethods dm ON dm.DeliveryMethodID = s.DeliveryMethodID
     WHERE (@Nombre IS NULL OR s.SupplierName LIKE '%' + @Nombre + '%')
       AND (@SupplierCategoryID IS NULL OR s.SupplierCategoryID = @SupplierCategoryID)
-    ORDER BY s.SupplierName ASC;
+    ORDER BY s.SupplierName ASC, s.SupplierID ASC
+    OFFSET CAST(@Pagina - 1 AS BIGINT) * @TamanoPagina ROWS
+    FETCH NEXT @TamanoPagina ROWS ONLY;
 END
 GO
 

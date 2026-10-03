@@ -22,6 +22,7 @@ router.get('/proveedores', async (req, res) => {
     const result = await pool.request()
       .input('Nombre', sql.NVarChar(100), req.query.nombre || null)
       .input('SupplierCategoryID', sql.Int, req.query.categoria ? parseInt(req.query.categoria) : null)
+      .input('Pagina', sql.Int, parseInt(req.query.pagina) || 1)
       .execute('Api.usp_Proveedores_Listar');
     res.json(result.recordset);
   } catch (error) {

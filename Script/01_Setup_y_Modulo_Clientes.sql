@@ -71,22 +71,31 @@ GO
 CREATE OR ALTER PROCEDURE Api.usp_Clientes_Listar
     @Nombre NVARCHAR(100) = NULL,
     @CustomerCategoryID INT = NULL,
-    @DeliveryMethodID INT = NULL
+    @DeliveryMethodID INT = NULL,
+    @Pagina INT = 1,
+    @TamanoPagina INT = 50
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    IF @Pagina < 1 SET @Pagina = 1;
+    IF @TamanoPagina < 1 SET @TamanoPagina = 50;
+
     SELECT
         c.CustomerID,
         c.CustomerName AS Nombre,
         cc.CustomerCategoryName AS Categoria,
-        dm.DeliveryMethodName AS MetodoEntrega
+        dm.DeliveryMethodName AS MetodoEntrega,
+        COUNT(*) OVER() AS TotalRegistros
     FROM Syn.Customers c
     INNER JOIN Syn.CustomerCategories cc ON cc.CustomerCategoryID = c.CustomerCategoryID
     INNER JOIN Syn.DeliveryMethods dm ON dm.DeliveryMethodID = c.DeliveryMethodID
     WHERE (@Nombre IS NULL OR c.CustomerName LIKE '%' + @Nombre + '%')
       AND (@CustomerCategoryID IS NULL OR c.CustomerCategoryID = @CustomerCategoryID)
       AND (@DeliveryMethodID IS NULL OR c.DeliveryMethodID = @DeliveryMethodID)
-    ORDER BY c.CustomerName ASC;
+    ORDER BY c.CustomerName ASC, c.CustomerID ASC
+    OFFSET CAST(@Pagina - 1 AS BIGINT) * @TamanoPagina ROWS
+    FETCH NEXT @TamanoPagina ROWS ONLY;
 END
 GO
 
