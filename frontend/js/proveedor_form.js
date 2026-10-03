@@ -5,13 +5,29 @@ const esEdicion = !!id;
 const form = document.getElementById('form-proveedor');
 const tituloEl = document.getElementById('titulo');
 const errorEl = document.getElementById('error');
+const btnGuardar = document.getElementById('btn-guardar');
 
 const selectCategoria = document.getElementById('categoria');
 const selectMetodo = document.getElementById('metodo');
-const selectCiudad = document.getElementById('ciudad');
 const selectContacto = document.getElementById('contacto');
+const selectContactoAlterno = document.getElementById('contactoAlterno');
+const selectCiudad = document.getElementById('ciudad');
+const inputDiasPago = document.getElementById('diasPago');
+const inputLatitud = document.getElementById('latitud');
+const inputLongitud = document.getElementById('longitud');
 
-function llenarSelect(select, items, valueKey, textKey) {
+// Devuelve el texto de un campo sin espacios al inicio ni al final
+function texto(idCampo) {
+  return document.getElementById(idCampo).value.trim();
+}
+
+// Llena un select; la primera opción es el texto de ayuda
+function llenarSelect(select, items, valueKey, textKey, textoVacio) {
+  const vacio = document.createElement('option');
+  vacio.value = '';
+  vacio.textContent = textoVacio;
+  select.appendChild(vacio);
+
   items.forEach(item => {
     const opt = document.createElement('option');
     opt.value = item[valueKey];
@@ -20,41 +36,46 @@ function llenarSelect(select, items, valueKey, textKey) {
   });
 }
 
-// El SP de detalle devuelve nombres (Categoria, MetodoEntrega), no los IDs,
-// asi que para preseleccionar el combo correcto en modo edicion, buscamos
-// la opcion cuyo texto coincide con el nombre que vino del detalle.
-function seleccionarPorTexto(select, texto) {
-  const opcion = Array.from(select.options).find(o => o.textContent === texto);
-  if (opcion) select.value = opcion.value;
-}
-
 async function inicializar() {
   try {
-    const [categorias, metodos, ciudades, personas] = await Promise.all([
+    const [categorias, metodos, personas, ciudades] = await Promise.all([
       apiGet('/api/proveedores/categorias'),
       apiGet('/api/metodos-entrega'),
-      apiGet('/api/ciudades'),
-      apiGet('/api/personas')
+      apiGet('/api/personas'),
+      apiGet('/api/ciudades')
     ]);
 
-    llenarSelect(selectCategoria, categorias, 'SupplierCategoryID', 'SupplierCategoryName');
-    llenarSelect(selectMetodo, metodos, 'DeliveryMethodID', 'DeliveryMethodName');
-    llenarSelect(selectCiudad, ciudades, 'CityID', 'CityName');
-    llenarSelect(selectContacto, personas, 'PersonID', 'FullName');
+    llenarSelect(selectCategoria, categorias, 'SupplierCategoryID', 'SupplierCategoryName', 'Seleccione una categoría');
+    llenarSelect(selectMetodo, metodos, 'DeliveryMethodID', 'DeliveryMethodName', 'Sin método de entrega');
+    llenarSelect(selectContacto, personas, 'PersonID', 'FullName', 'Seleccione un contacto');
+    llenarSelect(selectContactoAlterno, personas, 'PersonID', 'FullName', 'Seleccione un contacto alterno');
+    llenarSelect(selectCiudad, ciudades, 'CityID', 'CityName', 'Seleccione una ciudad');
 
     if (esEdicion) {
       tituloEl.textContent = 'Editar proveedor';
       document.getElementById('titulo-tab').textContent = 'Editar proveedor';
 
-      const c = await apiGet(`/api/proveedores/${id}`);
-      document.getElementById('nombre').value = c.Nombre || '';
-      document.getElementById('telefono').value = c.Telefono || '';
-      document.getElementById('sitioWeb').value = c.SitioWeb || '';
-
-      seleccionarPorTexto(selectCategoria, c.Categoria);
-      seleccionarPorTexto(selectMetodo, c.MetodoEntrega);
-      seleccionarPorTexto(selectCiudad, c.CiudadEntrega);
-      seleccionarPorTexto(selectContacto, c.ContactoPrimario);
+      const p = await apiGet(`/api/proveedores/${id}`);
+      document.getElementById('nombre').value = p.Nombre || '';
+      document.getElementById('referencia').value = p.CodigoProveedor || '';
+      selectCategoria.value = p.SupplierCategoryID;
+      selectMetodo.value = p.DeliveryMethodID ?? '';
+      inputDiasPago.value = p.DiasGraciaPago;
+      selectContacto.value = p.PrimaryContactPersonID;
+      selectContactoAlterno.value = p.AlternateContactPersonID ?? '';
+      document.getElementById('telefono').value = p.Telefono || '';
+      document.getElementById('fax').value = p.Fax || '';
+      document.getElementById('sitioWeb').value = p.SitioWeb || '';
+      document.getElementById('direccionEntrega1').value = p.DireccionEntrega1 || '';
+      document.getElementById('direccionEntrega2').value = p.DireccionEntrega2 || '';
+      selectCiudad.value = p.DeliveryCityID;
+      document.getElementById('codigoPostal').value = p.CodigoPostal || '';
+      document.getElementById('direccionPostal1').value = p.DireccionPostal1 || '';
+      document.getElementById('direccionPostal2').value = p.DireccionPostal2 || '';
+      document.getElementById('nombreBanco').value = p.NombreBanco || '';
+      document.getElementById('numeroCuenta').value = p.NumeroCuenta || '';
+      inputLatitud.value = p.Latitud ?? '';
+      inputLongitud.value = p.Longitud ?? '';
     }
   } catch (e) {
     errorEl.textContent = 'Error cargando datos: ' + e.message;
@@ -65,15 +86,48 @@ form.addEventListener('submit', async (e) => {
   e.preventDefault();
   errorEl.textContent = '';
 
+  const latitudVacia = inputLatitud.value === '';
+  const longitudVacia = inputLongitud.value === '';
+
   const body = {
-    nombre: document.getElementById('nombre').value.trim(),
+    nombre: texto('nombre'),
+    referencia: texto('referencia'),
     categoria: parseInt(selectCategoria.value),
-    metodo: parseInt(selectMetodo.value),
-    ciudad: parseInt(selectCiudad.value),
+    metodo: selectMetodo.value ? parseInt(selectMetodo.value) : null,
+    diasPago: parseInt(inputDiasPago.value),
     contacto: parseInt(selectContacto.value),
-    telefono: document.getElementById('telefono').value.trim(),
-    sitioWeb: document.getElementById('sitioWeb').value.trim()
+    contactoAlterno: parseInt(selectContactoAlterno.value),
+    telefono: texto('telefono'),
+    fax: texto('fax'),
+    sitioWeb: texto('sitioWeb'),
+    direccionEntrega1: texto('direccionEntrega1'),
+    direccionEntrega2: texto('direccionEntrega2'),
+    ciudad: parseInt(selectCiudad.value),
+    codigoPostal: texto('codigoPostal'),
+    direccionPostal1: texto('direccionPostal1'),
+    direccionPostal2: texto('direccionPostal2'),
+    nombreBanco: texto('nombreBanco'),
+    numeroCuenta: texto('numeroCuenta'),
+    latitud: latitudVacia ? null : parseFloat(inputLatitud.value),
+    longitud: longitudVacia ? null : parseFloat(inputLongitud.value)
   };
+
+  // Validaciones
+  if (!body.nombre || !body.telefono || !body.fax || !body.sitioWeb ||
+      !body.direccionEntrega1 || !body.codigoPostal || !body.direccionPostal1) {
+    errorEl.textContent = 'Complete todos los campos obligatorios (*).';
+    return;
+  }
+  if (body.contacto === body.contactoAlterno) {
+    errorEl.textContent = 'El contacto alterno debe ser distinto al contacto primario.';
+    return;
+  }
+  if (latitudVacia !== longitudVacia) {
+    errorEl.textContent = 'La latitud y la longitud se deben indicar juntas.';
+    return;
+  }
+
+  btnGuardar.disabled = true;
 
   try {
     if (esEdicion) {
@@ -85,6 +139,7 @@ form.addEventListener('submit', async (e) => {
     }
   } catch (e) {
     errorEl.textContent = 'Error al guardar: ' + e.message;
+    btnGuardar.disabled = false;
   }
 });
 

@@ -2,7 +2,33 @@ const express = require('express');
 const { getConnection, sql } = require('../db');
 
 const router = express.Router();
+function opcional(valor) {
+  return valor === undefined || valor === null || valor === '' ? null : valor;
+}
 
+function agregarCampos(request, body) {
+  return request
+    .input('SupplierName', sql.NVarChar(100), req.body.nombre)
+.input('SupplierReference', sql.NVarChar(20), req.body.referencia || null)
+.input('SupplierCategoryID', sql.Int, req.body.categoria)
+.input('DeliveryMethodID', sql.Int, req.body.metodo)
+.input('PrimaryContactPersonID', sql.Int, req.body.contacto)
+.input('AlternateContactPersonID', sql.Int, req.body.contactoAlterno)
+.input('PaymentDays', sql.Int, req.body.diasPago)
+.input('PhoneNumber', sql.NVarChar(20), req.body.telefono)
+.input('FaxNumber', sql.NVarChar(20), req.body.fax)
+.input('WebsiteURL', sql.NVarChar(256), req.body.sitioWeb)
+.input('DeliveryAddressLine1', sql.NVarChar(60), req.body.direccionEntrega1)
+.input('DeliveryAddressLine2', sql.NVarChar(60), req.body.direccionEntrega2 || null)
+.input('DeliveryCityID', sql.Int, req.body.ciudad)
+.input('DeliveryPostalCode', sql.NVarChar(10), req.body.codigoPostal)
+.input('PostalAddressLine1', sql.NVarChar(60), req.body.direccionPostal1)
+.input('PostalAddressLine2', sql.NVarChar(60), req.body.direccionPostal2 || null)
+.input('Latitud', sql.Decimal(9, 6), req.body.latitud)
+.input('Longitud', sql.Decimal(9, 6), req.body.longitud)
+.input('BankAccountName', sql.NVarChar(50), req.body.nombreBanco || null)
+.input('BankAccountNumber', sql.NVarChar(20), req.body.numeroCuenta || null)
+}
 // GET /api/proveedores/categorias
 router.get('/proveedores/categorias', async (req, res) => {
   try {

@@ -13,7 +13,12 @@ const selectColor = document.getElementById('color');
 const selectUnidad = document.getElementById('unidadEmpaque');
 const selectEmpaque = document.getElementById('empaqueExterior');
 
-function llenarSelect(select, items, valueKey, textKey) {
+function llenarSelect(select, items, valueKey, textKey, textoVacio) {
+  const vacio = document.createElement('option');
+  vacio.value = '';
+  vacio.textContent = textoVacio;
+  select.appendChild(vacio);
+
   items.forEach(item => {
     const opt = document.createElement('option');
     opt.value = item[valueKey];
@@ -36,17 +41,11 @@ async function inicializar() {
       apiGet('/api/inventarios/tipos-empaque')
     ]);
 
-    llenarSelect(selectProveedor, proveedores, 'SupplierID', 'SupplierName');
-    llenarSelect(selectGrupo, grupos, 'StockGroupID', 'StockGroupName');
-    llenarSelect(selectUnidad, empaques, 'PackageTypeID', 'PackageTypeName');
-    llenarSelect(selectEmpaque, empaques, 'PackageTypeID', 'PackageTypeName');
-
-    // El color es opcional: primera opcion vacia
-    const sinColor = document.createElement('option');
-    sinColor.value = '';
-    sinColor.textContent = 'Sin color';
-    selectColor.appendChild(sinColor);
-    llenarSelect(selectColor, colores, 'ColorID', 'ColorName');
+    llenarSelect(selectProveedor, proveedores, 'SupplierID', 'SupplierName', 'Seleccione un proveedor');
+    llenarSelect(selectGrupo, grupos, 'StockGroupID', 'StockGroupName', 'Seleccione un grupo');
+    llenarSelect(selectUnidad, empaques, 'PackageTypeID', 'PackageTypeName', 'Seleccione una unidad');
+    llenarSelect(selectEmpaque, empaques, 'PackageTypeID', 'PackageTypeName', 'Seleccione un empaque');
+    llenarSelect(selectColor, colores, 'ColorID', 'ColorName', 'Sin color');
 
     if (esEdicion) {
       tituloEl.textContent = 'Editar producto';
@@ -54,7 +53,7 @@ async function inicializar() {
 
       // El grupo solo se elige al crear (el procedimiento de modificar no lo toca)
       selectGrupo.disabled = true;
-      document.getElementById('label-grupo').hidden = true;
+      document.getElementById('label-grupo').style.display = 'none';
 
       const p = await apiGet(`/api/inventarios/${id}`);
       ponerValor('nombre', p.Nombre);

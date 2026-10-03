@@ -18,27 +18,12 @@ const inputDiasPago = document.getElementById('diasPago');
 const inputLatitud = document.getElementById('latitud');
 const inputLongitud = document.getElementById('longitud');
 
-// Lee un campo de texto sin espacios al inicio ni al final
+// Devuelve el texto de un campo sin espacios al inicio ni al final
 function texto(idCampo) {
   return document.getElementById(idCampo).value.trim();
 }
 
-// Número del select, o null si no se eligió nada
-function numeroOpcional(select) {
-  return select.value ? parseInt(select.value) : null;
-}
-
-// Número del input, o null si está vacío (el 0 es un valor válido)
-function decimalOpcional(input) {
-  return input.value === '' ? null : parseFloat(input.value);
-}
-
-// Valor de latitud/longitud para mostrar en el input
-function coordenada(valor) {
-  return valor === null || valor === undefined ? '' : Number(valor).toFixed(6);
-}
-
-// Llena un select; la primera opción (valor vacío) es el texto de ayuda
+// Llena un select; la primera opción es el texto de ayuda
 function llenarSelect(select, items, valueKey, textKey, textoVacio) {
   const vacio = document.createElement('option');
   vacio.value = '';
@@ -81,7 +66,7 @@ async function inicializar() {
       selectCategoria.value = c.CustomerCategoryID;
       selectGrupo.value = c.BuyingGroupID ?? '';
       selectMetodo.value = c.DeliveryMethodID;
-      // Si se factura a sí mismo se deja la opción "Este mismo cliente"
+      // Si se factura a sí mismo se deja "Este mismo cliente"
       selectClienteFacturar.value = c.BillToCustomerID === c.CustomerID ? '' : c.BillToCustomerID;
       selectContacto.value = c.PrimaryContactPersonID;
       selectContactoAlterno.value = c.AlternateContactPersonID ?? '';
@@ -95,51 +80,29 @@ async function inicializar() {
       document.getElementById('codigoPostal').value = c.CodigoPostal || '';
       document.getElementById('direccionPostal1').value = c.DireccionPostal1 || '';
       document.getElementById('direccionPostal2').value = c.DireccionPostal2 || '';
-      inputLatitud.value = coordenada(c.Latitud);
-      inputLongitud.value = coordenada(c.Longitud);
+      inputLatitud.value = c.Latitud ?? '';
+      inputLongitud.value = c.Longitud ?? '';
     }
   } catch (e) {
     errorEl.textContent = 'Error cargando datos: ' + e.message;
   }
 }
 
-// Validaciones que el navegador no hace (campos solo con espacios y ubicación incompleta)
-function validar(body) {
-  const obligatorios = [
-    [body.nombre, 'El nombre'],
-    [body.telefono, 'El teléfono'],
-    [body.fax, 'El fax'],
-    [body.sitioWeb, 'El sitio web'],
-    [body.direccionEntrega1, 'La dirección de entrega'],
-    [body.codigoPostal, 'El código postal'],
-    [body.direccionPostal1, 'La dirección postal']
-  ];
-
-  for (const [valor, nombre] of obligatorios) {
-    if (!valor) return `${nombre} es obligatorio.`;
-  }
-
-  const hayLatitud = body.latitud !== null;
-  const hayLongitud = body.longitud !== null;
-  if (hayLatitud !== hayLongitud) {
-    return 'La latitud y la longitud se deben indicar juntas.';
-  }
-
-  return '';
-}
-
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   errorEl.textContent = '';
 
+  const latitudVacia = inputLatitud.value === '';
+  const longitudVacia = inputLongitud.value === '';
+
   const body = {
     nombre: texto('nombre'),
     categoria: parseInt(selectCategoria.value),
-    grupoCompra: numeroOpcional(selectGrupo),
+    grupoCompra: selectGrupo.value ? parseInt(selectGrupo.value) : null,
     metodo: parseInt(selectMetodo.value),
-    clienteFacturar: numeroOpcional(selectClienteFacturar),
+    clienteFacturar: selectClienteFacturar.value ? parseInt(selectClienteFacturar.value) : null,
     contacto: parseInt(selectContacto.value),
-    contactoAlterno: numeroOpcional(selectContactoAlterno),
+    contactoAlterno: selectContactoAlterno.value ? parseInt(selectContactoAlterno.value) : null,
     diasPago: parseInt(inputDiasPago.value),
     telefono: texto('telefono'),
     fax: texto('fax'),
@@ -150,13 +113,18 @@ form.addEventListener('submit', async (e) => {
     codigoPostal: texto('codigoPostal'),
     direccionPostal1: texto('direccionPostal1'),
     direccionPostal2: texto('direccionPostal2'),
-    latitud: decimalOpcional(inputLatitud),
-    longitud: decimalOpcional(inputLongitud)
+    latitud: latitudVacia ? null : parseFloat(inputLatitud.value),
+    longitud: longitudVacia ? null : parseFloat(inputLongitud.value)
   };
 
-  const mensaje = validar(body);
-  if (mensaje) {
-    errorEl.textContent = 'Error: ' + mensaje;
+  // Validaciones
+  if (!body.nombre || !body.telefono || !body.fax || !body.sitioWeb ||
+      !body.direccionEntrega1 || !body.codigoPostal || !body.direccionPostal1) {
+    errorEl.textContent = 'Complete todos los campos obligatorios (*).';
+    return;
+  }
+  if (latitudVacia !== longitudVacia) {
+    errorEl.textContent = 'La latitud y la longitud se deben indicar juntas.';
     return;
   }
 
