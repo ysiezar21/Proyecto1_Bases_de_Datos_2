@@ -5,7 +5,13 @@ const sinResultados = document.getElementById('sin-resultados');
 const errorEl = document.getElementById('error');
 const inputNombre = document.getElementById('filtro-nombre');
 const selectGrupo = document.getElementById('filtro-grupo');
+const paginacion = document.getElementById('paginacion');
+const infoPagina = document.getElementById('info-pagina');
+const btnAnterior = document.getElementById('btn-anterior');
+const btnSiguiente = document.getElementById('btn-siguiente');
 
+const POR_PAGINA = 50;
+let paginaActual = 1;
 // Cargar selects al abrir la página
 async function cargarFiltros() {
   try {
@@ -25,11 +31,12 @@ async function cargarFiltros() {
   }
 }
 
-// Cargar productos aplicando filtros acumulativos
+// Cargar productos aplicando filtros acumulativos y la página actual
 async function cargarProductos() {
   tbody.innerHTML = '';
   errorEl.textContent = '';
   sinResultados.hidden = true;
+  paginacion.hidden = true;
   cargando.hidden = false;
   tabla.hidden = true;
 
@@ -37,11 +44,10 @@ async function cargarProductos() {
   const nombre = inputNombre.value.trim();
   if (nombre) params.append('nombre', nombre);
   if (selectGrupo.value) params.append('grupo', selectGrupo.value);
-
-  const query = params.toString() ? `?${params.toString()}` : '';
+  params.append('pagina', paginaActual);
 
   try {
-    const productos = await apiGet(`/api/inventarios${query}`);
+    const productos = await apiGet(`/api/inventarios?${params.toString()}`);
 
     if (productos.length === 0) {
       sinResultados.hidden = false;
@@ -55,6 +61,14 @@ async function cargarProductos() {
         `;
         tbody.appendChild(tr);
       });
+
+      // El total de productos viene en cada fila desde la base de datos
+      const total = productos[0].TotalRegistros;
+      const totalPaginas = Math.ceil(total / POR_PAGINA);
+      infoPagina.textContent = `Página ${paginaActual} de ${totalPaginas} (${total} productos)`;
+      btnAnterior.disabled = paginaActual <= 1;
+      btnSiguiente.disabled = paginaActual >= totalPaginas;
+      paginacion.hidden = false;
     }
   } catch (e) {
     errorEl.textContent = 'Error: ' + e.message;
@@ -64,21 +78,37 @@ async function cargarProductos() {
   }
 }
 
+// Una búsqueda nueva siempre empieza en la página 1
+function buscar() {
+  paginaActual = 1;
+  cargarProductos();
+}
 // Eventos
-document.getElementById('btn-buscar').addEventListener('click', cargarProductos);
+document.getElementById('btn-buscar').addEventListener('click', buscar);
 
 inputNombre.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') cargarProductos();
+  if (e.key === 'Enter') buscar();
 });
 
-selectGrupo.addEventListener('change', cargarProductos);
+selectGrupo.addEventListener('change', buscar);
+
+btnAnterior.addEventListener('click', () => {
+  paginaActual--;
+  cargarProductos();
+  window.scrollTo(0, 0);
+});
+
+btnSiguiente.addEventListener('click', () => {
+  paginaActual++;
+  cargarProductos();
+  window.scrollTo(0, 0);
+});
 
 document.getElementById('btn-restaurar').addEventListener('click', () => {
   inputNombre.value = '';
   selectGrupo.value = '';
-  cargarProductos();
+  buscar();
 });
-
 // Inicializar
 (async () => {
   await cargarFiltros();

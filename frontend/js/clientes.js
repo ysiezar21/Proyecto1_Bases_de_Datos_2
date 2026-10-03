@@ -6,7 +6,13 @@ const errorEl = document.getElementById('error');
 const inputNombre = document.getElementById('filtro-nombre');
 const selectCategoria = document.getElementById('filtro-categoria');
 const selectMetodo = document.getElementById('filtro-metodo');
+const paginacion = document.getElementById('paginacion');
+const infoPagina = document.getElementById('info-pagina');
+const btnAnterior = document.getElementById('btn-anterior');
+const btnSiguiente = document.getElementById('btn-siguiente');
 
+const POR_PAGINA = 50;
+let paginaActual = 1;
 // Cargar selects al abrir la página
 async function cargarFiltros() {
   try {
@@ -33,11 +39,12 @@ async function cargarFiltros() {
   }
 }
 
-// Cargar clientes aplicando filtros acumulativos
+// Cargar clientes aplicando filtros acumulativos y la página actual
 async function cargarClientes() {
   tbody.innerHTML = '';
   errorEl.textContent = '';
   sinResultados.hidden = true;
+  paginacion.hidden = true;
   cargando.hidden = false;
   tabla.hidden = true;
 
@@ -46,11 +53,10 @@ async function cargarClientes() {
   if (nombre) params.append('nombre', nombre);
   if (selectCategoria.value) params.append('categoria', selectCategoria.value);
   if (selectMetodo.value) params.append('metodo', selectMetodo.value);
-
-  const query = params.toString() ? `?${params.toString()}` : '';
+  params.append('pagina', paginaActual);
 
   try {
-    const clientes = await apiGet(`/api/clientes${query}`);
+    const clientes = await apiGet(`/api/clientes?${params.toString()}`);
 
     if (clientes.length === 0) {
       sinResultados.hidden = false;
@@ -64,6 +70,14 @@ async function cargarClientes() {
         `;
         tbody.appendChild(tr);
       });
+
+      // El total de clientes viene en cada fila desde la base de datos
+      const total = clientes[0].TotalRegistros;
+      const totalPaginas = Math.ceil(total / POR_PAGINA);
+      infoPagina.textContent = `Página ${paginaActual} de ${totalPaginas} (${total} clientes)`;
+      btnAnterior.disabled = paginaActual <= 1;
+      btnSiguiente.disabled = paginaActual >= totalPaginas;
+      paginacion.hidden = false;
     }
   } catch (e) {
     errorEl.textContent = 'Error: ' + e.message;
@@ -73,21 +87,39 @@ async function cargarClientes() {
   }
 }
 
+// Una búsqueda nueva siempre empieza en la página 1
+function buscar() {
+  paginaActual = 1;
+  cargarClientes();
+}
+
 // Eventos
-document.getElementById('btn-buscar').addEventListener('click', cargarClientes);
+document.getElementById('btn-buscar').addEventListener('click', buscar);
 
 inputNombre.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') cargarClientes();
+  if (e.key === 'Enter') buscar();
 });
 
-selectCategoria.addEventListener('change', cargarClientes);
-selectMetodo.addEventListener('change', cargarClientes);
+selectCategoria.addEventListener('change', buscar);
+selectMetodo.addEventListener('change', buscar);
+
+btnAnterior.addEventListener('click', () => {
+  paginaActual--;
+  cargarClientes();
+  window.scrollTo(0, 0);
+});
+
+btnSiguiente.addEventListener('click', () => {
+  paginaActual++;
+  cargarClientes();
+  window.scrollTo(0, 0);
+});
 
 document.getElementById('btn-restaurar').addEventListener('click', () => {
   inputNombre.value = '';
   selectCategoria.value = '';
   selectMetodo.value = '';
-  cargarClientes();
+  buscar();
 });
 
 // Inicializar

@@ -6,7 +6,13 @@ const errorEl = document.getElementById('error');
 const inputNombre = document.getElementById('filtro-nombre');
 const selectCategoria = document.getElementById('filtro-categoria');
 const selectMetodo = document.getElementById('filtro-metodo');
+const paginacion = document.getElementById('paginacion');
+const infoPagina = document.getElementById('info-pagina');
+const btnAnterior = document.getElementById('btn-anterior');
+const btnSiguiente = document.getElementById('btn-siguiente');
 
+const POR_PAGINA = 50;
+let paginaActual = 1;
 // Cargar selects al abrir la página
 async function cargarFiltros() {
   try {
@@ -23,11 +29,12 @@ async function cargarFiltros() {
   }
 }
 
-// Cargar proveedores aplicando filtros acumulativos
+// Cargar proveedores aplicando filtros acumulativos y la página actual
 async function cargarProveedores() {
   tbody.innerHTML = '';
   errorEl.textContent = '';
   sinResultados.hidden = true;
+  paginacion.hidden = true;
   cargando.hidden = false;
   tabla.hidden = true;
 
@@ -35,12 +42,10 @@ async function cargarProveedores() {
   const nombre = inputNombre.value.trim();
   if (nombre) params.append('nombre', nombre);
   if (selectCategoria.value) params.append('categoria', selectCategoria.value);
-  
-
-  const query = params.toString() ? `?${params.toString()}` : '';
+  params.append('pagina', paginaActual);
 
   try {
-    const proveedores = await apiGet(`/api/proveedores${query}`);
+    const proveedores = await apiGet(`/api/proveedores?${params.toString()}`);
 
     if (proveedores.length === 0) {
       sinResultados.hidden = false;
@@ -54,6 +59,14 @@ async function cargarProveedores() {
         `;
         tbody.appendChild(tr);
       });
+
+      // El total de proveedores viene en cada fila desde la base de datos
+      const total = proveedores[0].TotalRegistros;
+      const totalPaginas = Math.ceil(total / POR_PAGINA);
+      infoPagina.textContent = `Página ${paginaActual} de ${totalPaginas} (${total} proveedores)`;
+      btnAnterior.disabled = paginaActual <= 1;
+      btnSiguiente.disabled = paginaActual >= totalPaginas;
+      paginacion.hidden = false;
     }
   } catch (e) {
     errorEl.textContent = 'Error: ' + e.message;
@@ -63,21 +76,37 @@ async function cargarProveedores() {
   }
 }
 
+// Una búsqueda nueva siempre empieza en la página 1
+function buscar() {
+  paginaActual = 1;
+  cargarProveedores();
+}
+
 // Eventos
-document.getElementById('btn-buscar').addEventListener('click', cargarProveedores);
+document.getElementById('btn-buscar').addEventListener('click', buscar);
 
 inputNombre.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') cargarProveedores();
+  if (e.key === 'Enter') buscar();
 });
 
-selectCategoria.addEventListener('change', cargarProveedores);
+selectCategoria.addEventListener('change', buscar);
 
+btnAnterior.addEventListener('click', () => {
+  paginaActual--;
+  cargarProveedores();
+  window.scrollTo(0, 0);
+});
+
+btnSiguiente.addEventListener('click', () => {
+  paginaActual++;
+  cargarProveedores();
+  window.scrollTo(0, 0);
+});
 
 document.getElementById('btn-restaurar').addEventListener('click', () => {
   inputNombre.value = '';
   selectCategoria.value = '';
-  
-  cargarProveedores();
+  buscar();
 });
 
 // Inicializar

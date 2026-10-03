@@ -71,6 +71,11 @@ BEGIN
     SET NOCOUNT ON;
     SELECT
         s.SupplierID,
+        s.SupplierCategoryID,
+        s.DeliveryMethodID,
+        s.PrimaryContactPersonID,
+        s.AlternateContactPersonID,
+        s.DeliveryCityID,
         s.SupplierReference AS CodigoProveedor,
         s.SupplierName AS Nombre,
         sc.SupplierCategoryName AS Categoria,
@@ -103,59 +108,65 @@ GO
 
 CREATE OR ALTER PROCEDURE Api.usp_Proveedores_Crear
     @SupplierName NVARCHAR(100),
+    @SupplierReference NVARCHAR(20) = NULL,
     @SupplierCategoryID INT,
-    @DeliveryMethodID INT,
-    @DeliveryCityID INT,
+    @DeliveryMethodID INT = NULL,
     @PrimaryContactPersonID INT,
-    @PhoneNumber NVARCHAR(20) = NULL,
-    @WebsiteURL NVARCHAR(256) = NULL,
+    @AlternateContactPersonID INT,
+    @PaymentDays INT,
+    @PhoneNumber NVARCHAR(20),
+    @FaxNumber NVARCHAR(20),
+    @WebsiteURL NVARCHAR(256),
+    @DeliveryAddressLine1 NVARCHAR(60),
+    @DeliveryAddressLine2 NVARCHAR(60) = NULL,
+    @DeliveryCityID INT,
+    @DeliveryPostalCode NVARCHAR(10),
+    @PostalAddressLine1 NVARCHAR(60),
+    @PostalAddressLine2 NVARCHAR(60) = NULL,
+    @Latitud DECIMAL(9,6) = NULL,
+    @Longitud DECIMAL(9,6) = NULL,
+    @BankAccountName NVARCHAR(50) = NULL,
+    @BankAccountNumber NVARCHAR(20) = NULL,
     @NuevoSupplierID INT OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
     BEGIN TRY
         BEGIN TRANSACTION;
+
+        IF EXISTS (SELECT 1 FROM Syn.Suppliers WHERE SupplierName = @SupplierName)
+            THROW 50035, 'Ya existe un proveedor con ese nombre.', 1;
+
+        IF (@Latitud IS NULL AND @Longitud IS NOT NULL)
+           OR (@Latitud IS NOT NULL AND @Longitud IS NULL)
+            THROW 50036, 'La latitud y la longitud se deben indicar juntas.', 1;
+
+        IF @Latitud NOT BETWEEN -90 AND 90 OR @Longitud NOT BETWEEN -180 AND 180
+            THROW 50037, 'La latitud debe estar entre -90 y 90 y la longitud entre -180 y 180.', 1;
 
         DECLARE @SistemaPersonID INT = (SELECT MIN(PersonID) FROM Syn.People);
         DECLARE @NextID INT = (SELECT ISNULL(MAX(SupplierID), 0) + 1 FROM Syn.Suppliers);
 
         INSERT INTO Syn.Suppliers (
-            SupplierID,
-            SupplierName,
-            SupplierCategoryID,
-            PrimaryContactPersonID,
-            AlternateContactPersonID,
-            DeliveryMethodID,
-            DeliveryCityID,
-            PostalCityID,
-            PaymentDays,
-            PhoneNumber,
-            FaxNumber,
-            WebsiteURL,
-            DeliveryAddressLine1,
-            DeliveryPostalCode,
-            PostalAddressLine1,
-            PostalPostalCode,
-            LastEditedBy
+            SupplierID, SupplierName, SupplierCategoryID,
+            PrimaryContactPersonID, AlternateContactPersonID, DeliveryMethodID,
+            DeliveryCityID, PostalCityID, SupplierReference,
+            BankAccountName, BankAccountNumber, PaymentDays,
+            PhoneNumber, FaxNumber, WebsiteURL,
+            DeliveryAddressLine1, DeliveryAddressLine2, DeliveryPostalCode, DeliveryLocation,
+            PostalAddressLine1, PostalAddressLine2, PostalPostalCode, LastEditedBy
         )
         VALUES (
-            @NextID,
-            @SupplierName,
-            @SupplierCategoryID,
-            @PrimaryContactPersonID,
-            @PrimaryContactPersonID,
-            @DeliveryMethodID,
-            @DeliveryCityID,
-            @DeliveryCityID,
-            30,
-            @PhoneNumber,
-            'N/A',
-            @WebsiteURL,
-            'Sin direccion',
-            '00000',
-            'Sin direccion',
-            '00000',
-            @SistemaPersonID
+            @NextID, @SupplierName, @SupplierCategoryID,
+            @PrimaryContactPersonID, @AlternateContactPersonID, @DeliveryMethodID,
+            @DeliveryCityID, @DeliveryCityID, @SupplierReference,
+            @BankAccountName, @BankAccountNumber, @PaymentDays,
+            @PhoneNumber, @FaxNumber, @WebsiteURL,
+            @DeliveryAddressLine1, @DeliveryAddressLine2, @DeliveryPostalCode,
+            CASE WHEN @Latitud IS NULL THEN NULL
+                 ELSE geography::Point(@Latitud, @Longitud, 4326) END,
+            @PostalAddressLine1, @PostalAddressLine2, @DeliveryPostalCode, @SistemaPersonID
         );
 
         SET @NuevoSupplierID = @NextID;
@@ -172,30 +183,67 @@ GO
 CREATE OR ALTER PROCEDURE Api.usp_Proveedores_Modificar
     @SupplierID INT,
     @SupplierName NVARCHAR(100),
+    @SupplierReference NVARCHAR(20) = NULL,
     @SupplierCategoryID INT,
-    @DeliveryMethodID INT,
-    @PhoneNumber NVARCHAR(20) = NULL,
-    @WebsiteURL NVARCHAR(256) = NULL,
-    @PaymentDays INT = 30
+    @DeliveryMethodID INT = NULL,
+    @PrimaryContactPersonID INT,
+    @AlternateContactPersonID INT,
+    @PaymentDays INT,
+    @PhoneNumber NVARCHAR(20),
+    @FaxNumber NVARCHAR(20),
+    @WebsiteURL NVARCHAR(256),
+    @DeliveryAddressLine1 NVARCHAR(60),
+    @DeliveryAddressLine2 NVARCHAR(60) = NULL,
+    @DeliveryCityID INT,
+    @DeliveryPostalCode NVARCHAR(10),
+    @PostalAddressLine1 NVARCHAR(60),
+    @PostalAddressLine2 NVARCHAR(60) = NULL,
+    @Latitud DECIMAL(9,6) = NULL,
+    @Longitud DECIMAL(9,6) = NULL,
+    @BankAccountName NVARCHAR(50) = NULL,
+    @BankAccountNumber NVARCHAR(20) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
     BEGIN TRY
         BEGIN TRANSACTION;
 
         IF NOT EXISTS (SELECT 1 FROM Syn.Suppliers WHERE SupplierID = @SupplierID)
-        BEGIN
-            ROLLBACK TRANSACTION;
             THROW 50003, 'El proveedor no existe.', 1;
-        END
+
+        IF EXISTS (SELECT 1 FROM Syn.Suppliers
+                   WHERE SupplierName = @SupplierName AND SupplierID <> @SupplierID)
+            THROW 50035, 'Ya existe otro proveedor con ese nombre.', 1;
+
+        IF (@Latitud IS NULL AND @Longitud IS NOT NULL)
+           OR (@Latitud IS NOT NULL AND @Longitud IS NULL)
+            THROW 50036, 'La latitud y la longitud se deben indicar juntas.', 1;
+
+        IF @Latitud NOT BETWEEN -90 AND 90 OR @Longitud NOT BETWEEN -180 AND 180
+            THROW 50037, 'La latitud debe estar entre -90 y 90 y la longitud entre -180 y 180.', 1;
 
         UPDATE Syn.Suppliers
         SET SupplierName = @SupplierName,
+            SupplierReference = @SupplierReference,
             SupplierCategoryID = @SupplierCategoryID,
             DeliveryMethodID = @DeliveryMethodID,
-            PhoneNumber = @PhoneNumber,
-            WebsiteURL = @WebsiteURL,
+            PrimaryContactPersonID = @PrimaryContactPersonID,
+            AlternateContactPersonID = @AlternateContactPersonID,
             PaymentDays = @PaymentDays,
+            PhoneNumber = @PhoneNumber,
+            FaxNumber = @FaxNumber,
+            WebsiteURL = @WebsiteURL,
+            DeliveryAddressLine1 = @DeliveryAddressLine1,
+            DeliveryAddressLine2 = @DeliveryAddressLine2,
+            DeliveryCityID = @DeliveryCityID,
+            DeliveryPostalCode = @DeliveryPostalCode,
+            DeliveryLocation = CASE WHEN @Latitud IS NULL THEN NULL
+                                    ELSE geography::Point(@Latitud, @Longitud, 4326) END,
+            PostalAddressLine1 = @PostalAddressLine1,
+            PostalAddressLine2 = @PostalAddressLine2,
+            BankAccountName = @BankAccountName,
+            BankAccountNumber = @BankAccountNumber,
             LastEditedBy = (SELECT MIN(PersonID) FROM Syn.People)
         WHERE SupplierID = @SupplierID;
 
@@ -207,7 +255,6 @@ BEGIN
     END CATCH
 END
 GO
-
 CREATE OR ALTER PROCEDURE Api.usp_Proveedores_Eliminar
     @SupplierID INT
 AS

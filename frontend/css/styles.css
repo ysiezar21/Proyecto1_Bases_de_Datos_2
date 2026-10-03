@@ -358,6 +358,36 @@ form.formulario button[type="submit"] {
   margin-top: 0.5rem;
 }
 
+form.formulario.ancho {
+  max-width: 700px;
+}
+
+form.formulario h2 {
+  font-size: 1.1rem;
+  color: #2c3e50;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 0.4rem;
+  margin: 0.5rem 0 0;
+}
+
+form.formulario .dos-columnas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2rem;
+}
+
+form.formulario .ayuda {
+  margin: 0;
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+  form.formulario .dos-columnas {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ============ Botones de acción en el detalle ============ */
 .card.acciones {
   display: flex;
