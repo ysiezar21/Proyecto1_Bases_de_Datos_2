@@ -444,3 +444,59 @@ button:disabled {
   align-items: center;
   gap: 0.4rem;
 }
+
+/* ============ Formulario de ventas ============ */
+form.formulario.muy-ancho {
+  max-width: 960px;
+}
+
+form.formulario textarea {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+form.formulario textarea:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
+}
+
+form.formulario .tabla-lineas {
+  box-shadow: none;
+  border: 1px solid #e0e0e0;
+}
+
+form.formulario .tabla-lineas td,
+form.formulario .tabla-lineas th {
+  padding: 0.5rem 0.6rem;
+}
+
+form.formulario .tabla-lineas select,
+form.formulario .tabla-lineas input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+form.formulario .tabla-lineas th:nth-child(2),
+form.formulario .tabla-lineas th:nth-child(3) {
+  width: 150px;
+}
+
+form.formulario .tabla-lineas th:last-child {
+  width: 90px;
+}
+
+form.formulario button#btn-agregar-linea {
+  align-self: flex-start;
+}
+
+@media (max-width: 700px) {
+  form.formulario .tabla-lineas {
+    display: block;
+    overflow-x: auto;
+  }
+}

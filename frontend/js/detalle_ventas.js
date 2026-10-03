@@ -36,6 +36,10 @@ async function cargarDetalle() {
     `).join('');
 
     detalleEl.innerHTML = `
+      <div class="card acciones">
+        <button id="btn-editar">Editar</button>
+      </div>
+
       <div class="card">
         <h2>Encabezado de la factura</h2>
         <p><strong>Número de factura:</strong> ${valor(e.NumeroFactura)}</p>
@@ -65,6 +69,10 @@ async function cargarDetalle() {
         </table>
       </div>
     `;
+      // Las ventas se pueden editar pero no eliminar
+  document.getElementById('btn-editar').addEventListener('click', () => {
+    window.location.href = `venta_form?id=${id}`;
+  });
   } catch (err) {
     errorEl.textContent = 'Error: ' + err.message;
     tituloEl.textContent = 'Error';
