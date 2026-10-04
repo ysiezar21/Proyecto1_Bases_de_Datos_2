@@ -65,6 +65,8 @@ router.get('/estadisticas/compras-proveedores', async (req, res) => {
     const result = await pool.request()
       .input('Categoria', sql.NVarChar(100), req.query.categoria || null)
       .input('Proveedor', sql.NVarChar(100), req.query.proveedor || null)
+      .input('Pagina', sql.Int, req.query.pagina ? parseInt(req.query.pagina) : 1)
+      .input('TamanoPagina', sql.Int, req.query.tamano ? parseInt(req.query.tamano) : 10)
       .execute('Api.usp_Estadisticas_ComprasProveedores');
     res.json(result.recordset);
   } catch (error) {
@@ -80,6 +82,8 @@ router.get('/estadisticas/ventas-clientes', async (req, res) => {
     const result = await pool.request()
       .input('Categoria', sql.NVarChar(100), req.query.categoria || null)
       .input('Cliente', sql.NVarChar(100), req.query.cliente || null)
+      .input('Pagina', sql.Int, req.query.pagina ? parseInt(req.query.pagina) : 1)
+      .input('TamanoPagina', sql.Int, req.query.tamano ? parseInt(req.query.tamano) : 10)
       .execute('Api.usp_Estadisticas_VentasClientes');
     res.json(result.recordset);
   } catch (error) {
@@ -95,6 +99,8 @@ router.get('/estadisticas/top-productos', async (req, res) => {
     const result = await pool.request()
       .input('AnioDesde', sql.Int, req.query.anioDesde ? parseInt(req.query.anioDesde) : null)
       .input('AnioHasta', sql.Int, req.query.anioHasta ? parseInt(req.query.anioHasta) : null)
+      .input('Pagina', sql.Int, req.query.pagina ? parseInt(req.query.pagina) : 1)
+      .input('TamanoPagina', sql.Int, req.query.tamano ? parseInt(req.query.tamano) : 10)
       .execute('Api.usp_Estadisticas_TopProductos');
     res.json(result.recordset);
   } catch (error) {
@@ -110,6 +116,8 @@ router.get('/estadisticas/top-clientes', async (req, res) => {
     const result = await pool.request()
       .input('AnioDesde', sql.Int, req.query.anioDesde ? parseInt(req.query.anioDesde) : null)
       .input('AnioHasta', sql.Int, req.query.anioHasta ? parseInt(req.query.anioHasta) : null)
+      .input('Pagina', sql.Int, req.query.pagina ? parseInt(req.query.pagina) : 1)
+      .input('TamanoPagina', sql.Int, req.query.tamano ? parseInt(req.query.tamano) : 10)
       .execute('Api.usp_Estadisticas_TopClientes');
     res.json(result.recordset);
   } catch (error) {
@@ -125,6 +133,8 @@ router.get('/estadisticas/top-proveedores', async (req, res) => {
     const result = await pool.request()
       .input('AnioDesde', sql.Int, req.query.anioDesde ? parseInt(req.query.anioDesde) : null)
       .input('AnioHasta', sql.Int, req.query.anioHasta ? parseInt(req.query.anioHasta) : null)
+      .input('Pagina', sql.Int, req.query.pagina ? parseInt(req.query.pagina) : 1)
+      .input('TamanoPagina', sql.Int, req.query.tamano ? parseInt(req.query.tamano) : 10)
       .execute('Api.usp_Estadisticas_TopProveedores');
     res.json(result.recordset);
   } catch (error) {
@@ -138,7 +148,9 @@ router.get('/estadisticas/matriz-ventas', async (req, res) => {
   try {
     const pool = await getConnection();
     const result = await pool.request()
-      .execute('Api.usp_Estadisticas_MatrizVentas');
+    .input('Pagina', sql.Int, req.query.pagina ? parseInt(req.query.pagina) : 1)
+    .input('TamanoPagina', sql.Int, req.query.tamano ? parseInt(req.query.tamano) : 10)  
+    .execute('Api.usp_Estadisticas_MatrizVentas');
     res.json(result.recordset);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -192,6 +204,8 @@ router.get('/estadisticas/rotacion-inventario', async (req, res) => {
       .input('StockGroupID', sql.Int, req.query.grupo ? parseInt(req.query.grupo) : null)
       .input('Anio', sql.Int, req.query.anio ? parseInt(req.query.anio) : null)
       .input('SupplierID', sql.Int, req.query.proveedor ? parseInt(req.query.proveedor) : null)
+      .input('Pagina', sql.Int, req.query.pagina ? parseInt(req.query.pagina) : 1)
+      .input('TamanoPagina', sql.Int, req.query.tamano ? parseInt(req.query.tamano) : 10)
       .execute('Api.usp_Estadisticas_RotacionInventario');
     res.json(result.recordset);
   } catch (error) {
@@ -210,6 +224,8 @@ router.get('/estadisticas/metodo-envio-favorito', async (req, res) => {
       .input('CustomerCategoryID', sql.Int, req.query.categoriaCliente ? parseInt(req.query.categoriaCliente) : null)
       .input('StockGroupID', sql.Int, req.query.grupo ? parseInt(req.query.grupo) : null)
       .input('StockItemID', sql.Int, req.query.producto ? parseInt(req.query.producto) : null)
+      .input('Pagina', sql.Int, req.query.pagina ? parseInt(req.query.pagina) : 1)
+      .input('TamanoPagina', sql.Int, req.query.tamano ? parseInt(req.query.tamano) : 10)
       .execute('Api.usp_Estadisticas_MetodoEnvioFavorito');
     res.json(result.recordset);
   } catch (error) {

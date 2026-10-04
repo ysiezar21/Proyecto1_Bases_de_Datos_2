@@ -84,13 +84,19 @@ async function cargarReporte(n) {
 }
 
 // ---------- Reporte 1 ----------
-async function cargarR1() {
+let r1Pagina = 1;
+
+async function cargarR1(pagina = 1) {
+  r1Pagina = pagina;
   mostrarCargando(1, true); mostrarError(1, '');
   const params = new URLSearchParams();
   const cat = $('#r1-categoria').value.trim();
   const prov = $('#r1-proveedor').value.trim();
   if (cat) params.append('categoria', cat);
   if (prov) params.append('proveedor', prov);
+  params.append('pagina', pagina);
+  params.append('tamano', 10);
+
   const rows = await apiGet('/api/estadisticas/compras-proveedores?' + params);
   mostrarCargando(1, false);
   renderTabla(1, rows, [
@@ -100,16 +106,34 @@ async function cargarR1() {
     { key: 'MontoMinimo', label: 'Mínimo', render: r => fmtMoney(r.MontoMinimo) },
     { key: 'MontoPromedio', label: 'Promedio', render: r => fmtMoney(r.MontoPromedio) }
   ]);
+
+  const pag = $('#r1-paginacion');
+  if (rows.length > 0) {
+    const total = rows[0].TotalRegistros;
+    const totalPaginas = Math.ceil(total / 10);
+    $('#r1-pagina-info').textContent = `Página ${pagina} de ${totalPaginas} (${total} registros)`;
+    $('#r1-prev').disabled = pagina <= 1;
+    $('#r1-next').disabled = pagina >= totalPaginas;
+    pag.hidden = false;
+  } else {
+    pag.hidden = true;
+  }
 }
 
 // ---------- Reporte 2 ----------
-async function cargarR2() {
+let r2Pagina = 1;
+
+async function cargarR2(pagina = 1) {
+  r2Pagina = pagina;
   mostrarCargando(2, true); mostrarError(2, '');
   const params = new URLSearchParams();
   const cat = $('#r2-categoria').value.trim();
   const cli = $('#r2-cliente').value.trim();
   if (cat) params.append('categoria', cat);
   if (cli) params.append('cliente', cli);
+  params.append('pagina', pagina);
+  params.append('tamano', 10);
+
   const rows = await apiGet('/api/estadisticas/ventas-clientes?' + params);
   mostrarCargando(2, false);
   renderTabla(2, rows, [
@@ -119,14 +143,32 @@ async function cargarR2() {
     { key: 'MontoMinimo', label: 'Mínimo', render: r => fmtMoney(r.MontoMinimo) },
     { key: 'MontoPromedio', label: 'Promedio', render: r => fmtMoney(r.MontoPromedio) }
   ]);
+
+  const pag = $('#r2-paginacion');
+  if (rows.length > 0) {
+    const total = rows[0].TotalRegistros;
+    const totalPaginas = Math.ceil(total / 10);
+    $('#r2-pagina-info').textContent = `Página ${pagina} de ${totalPaginas} (${total} registros)`;
+    $('#r2-prev').disabled = pagina <= 1;
+    $('#r2-next').disabled = pagina >= totalPaginas;
+    pag.hidden = false;
+  } else {
+    pag.hidden = true;
+  }
 }
 
 // ---------- Reporte 3 ----------
-async function cargarR3() {
+let r3Pagina = 1;
+
+async function cargarR3(pagina = 1) {
+  r3Pagina = pagina;
   mostrarCargando(3, true); mostrarError(3, '');
   const params = new URLSearchParams();
   if ($('#r3-anio-desde').value) params.append('anioDesde', $('#r3-anio-desde').value);
   if ($('#r3-anio-hasta').value) params.append('anioHasta', $('#r3-anio-hasta').value);
+  params.append('pagina', pagina);
+  params.append('tamano', 10);
+
   const rows = await apiGet('/api/estadisticas/top-productos?' + params);
   mostrarCargando(3, false);
   renderTabla(3, rows, [
@@ -135,14 +177,32 @@ async function cargarR3() {
     { key: 'Producto', label: 'Producto' },
     { key: 'Ganancia', label: 'Ganancia', render: r => fmtMoney(r.Ganancia) }
   ]);
+
+  const pag = $('#r3-paginacion');
+  if (rows.length > 0) {
+    const total = rows[0].TotalRegistros;
+    const totalPaginas = Math.ceil(total / 10);
+    $('#r3-pagina-info').textContent = `Página ${pagina} de ${totalPaginas} (${total} registros)`;
+    $('#r3-prev').disabled = pagina <= 1;
+    $('#r3-next').disabled = pagina >= totalPaginas;
+    pag.hidden = false;
+  } else {
+    pag.hidden = true;
+  }
 }
 
 // ---------- Reporte 4 ----------
-async function cargarR4() {
+let r4Pagina = 1;
+
+async function cargarR4(pagina = 1) {
+  r4Pagina = pagina;
   mostrarCargando(4, true); mostrarError(4, '');
   const params = new URLSearchParams();
   if ($('#r4-anio-desde').value) params.append('anioDesde', $('#r4-anio-desde').value);
   if ($('#r4-anio-hasta').value) params.append('anioHasta', $('#r4-anio-hasta').value);
+  params.append('pagina', pagina);
+  params.append('tamano', 10);
+
   const rows = await apiGet('/api/estadisticas/top-clientes?' + params);
   mostrarCargando(4, false);
   renderTabla(4, rows, [
@@ -152,14 +212,32 @@ async function cargarR4() {
     { key: 'CantidadFacturas', label: 'Facturas' },
     { key: 'MontoTotal', label: 'Monto total', render: r => fmtMoney(r.MontoTotal) }
   ]);
+
+  const pag = $('#r4-paginacion');
+  if (rows.length > 0) {
+    const total = rows[0].TotalRegistros;
+    const totalPaginas = Math.ceil(total / 10);
+    $('#r4-pagina-info').textContent = `Página ${pagina} de ${totalPaginas} (${total} registros)`;
+    $('#r4-prev').disabled = pagina <= 1;
+    $('#r4-next').disabled = pagina >= totalPaginas;
+    pag.hidden = false;
+  } else {
+    pag.hidden = true;
+  }
 }
 
 // ---------- Reporte 5 ----------
-async function cargarR5() {
+let r5Pagina = 1;
+
+async function cargarR5(pagina = 1) {
+  r5Pagina = pagina;
   mostrarCargando(5, true); mostrarError(5, '');
   const params = new URLSearchParams();
   if ($('#r5-anio-desde').value) params.append('anioDesde', $('#r5-anio-desde').value);
   if ($('#r5-anio-hasta').value) params.append('anioHasta', $('#r5-anio-hasta').value);
+  params.append('pagina', pagina);
+  params.append('tamano', 10);
+
   const rows = await apiGet('/api/estadisticas/top-proveedores?' + params);
   mostrarCargando(5, false);
   renderTabla(5, rows, [
@@ -169,12 +247,31 @@ async function cargarR5() {
     { key: 'CantidadOrdenes', label: 'Órdenes' },
     { key: 'MontoTotal', label: 'Monto total', render: r => fmtMoney(r.MontoTotal) }
   ]);
+
+  const pag = $('#r5-paginacion');
+  if (rows.length > 0) {
+    const total = rows[0].TotalRegistros;
+    const totalPaginas = Math.ceil(total / 10);
+    $('#r5-pagina-info').textContent = `Página ${pagina} de ${totalPaginas} (${total} registros)`;
+    $('#r5-prev').disabled = pagina <= 1;
+    $('#r5-next').disabled = pagina >= totalPaginas;
+    pag.hidden = false;
+  } else {
+    pag.hidden = true;
+  }
 }
 
 // ---------- Reporte 6 ----------
-async function cargarR6() {
+let r6Pagina = 1;
+
+async function cargarR6(pagina = 1) {
+  r6Pagina = pagina;
   mostrarCargando(6, true); mostrarError(6, '');
-  const rows = await apiGet('/api/estadisticas/matriz-ventas');
+  const params = new URLSearchParams();
+  params.append('pagina', pagina);
+  params.append('tamano', 10);
+
+  const rows = await apiGet('/api/estadisticas/matriz-ventas?' + params);
   mostrarCargando(6, false);
   const anios = ['2013', '2014', '2015', '2016'];
   renderTabla(6, rows, [
@@ -182,6 +279,18 @@ async function cargarR6() {
     ...anios.map(a => ({ key: a, label: a, render: r => fmtMoney(r[a]) })),
     { key: 'Total', label: 'Total', render: r => fmtMoney(r.Total) }
   ]);
+
+  const pag = $('#r6-paginacion');
+  if (rows.length > 0) {
+    const total = rows[0].TotalRegistros;
+    const totalPaginas = Math.ceil(total / 10);
+    $('#r6-pagina-info').textContent = `Página ${pagina} de ${totalPaginas} (${total} registros)`;
+    $('#r6-prev').disabled = pagina <= 1;
+    $('#r6-next').disabled = pagina >= totalPaginas;
+    pag.hidden = false;
+  } else {
+    pag.hidden = true;
+  }
 }
 
 // ---------- Reporte 7 ----------
@@ -269,12 +378,18 @@ async function cargarR8(pagina = 1) {
 }
 
 // ---------- Reporte 9 ----------
-async function cargarR9() {
+let r9Pagina = 1;
+
+async function cargarR9(pagina = 1) {
+  r9Pagina = pagina;
   mostrarCargando(9, true); mostrarError(9, '');
   const params = new URLSearchParams();
   if ($('#r9-grupo').value) params.append('grupo', $('#r9-grupo').value);
   if ($('#r9-anio').value) params.append('anio', $('#r9-anio').value);
   if ($('#r9-proveedor').value) params.append('proveedor', $('#r9-proveedor').value);
+  params.append('pagina', pagina);
+  params.append('tamano', 20);
+
   const rows = await apiGet('/api/estadisticas/rotacion-inventario?' + params);
   mostrarCargando(9, false);
   renderTabla(9, rows, [
@@ -285,10 +400,25 @@ async function cargarR9() {
     { key: 'CantidadVendida', label: 'Vendida' },
     { key: 'DiasRotacion', label: 'Días rotación', render: r => r.DiasRotacion ?? '—' }
   ]);
+
+  const pag = $('#r9-paginacion');
+  if (rows.length > 0) {
+    const total = rows[0].TotalRegistros;
+    const totalPaginas = Math.ceil(total / 20);
+    $('#r9-pagina-info').textContent = `Página ${pagina} de ${totalPaginas} (${total} registros)`;
+    $('#r9-prev').disabled = pagina <= 1;
+    $('#r9-next').disabled = pagina >= totalPaginas;
+    pag.hidden = false;
+  } else {
+    pag.hidden = true;
+  }
 }
 
 // ---------- Reporte 10 ----------
-async function cargarR10() {
+let r10Pagina = 1;
+
+async function cargarR10(pagina = 1) {
+  r10Pagina = pagina;
   mostrarCargando(10, true); mostrarError(10, '');
   const params = new URLSearchParams();
   if ($('#r10-anio').value) params.append('anio', $('#r10-anio').value);
@@ -296,6 +426,9 @@ async function cargarR10() {
   if ($('#r10-categoria').value) params.append('categoriaCliente', $('#r10-categoria').value);
   if ($('#r10-grupo').value) params.append('grupo', $('#r10-grupo').value);
   if ($('#r10-producto').value) params.append('producto', $('#r10-producto').value);
+  params.append('pagina', pagina);
+  params.append('tamano', 20);
+
   const rows = await apiGet('/api/estadisticas/metodo-envio-favorito?' + params);
   mostrarCargando(10, false);
   renderTabla(10, rows, [
@@ -305,6 +438,18 @@ async function cargarR10() {
     { key: 'CantidadVentas', label: 'Ventas' },
     { key: 'Posicion', label: 'Posición' }
   ]);
+
+  const pag = $('#r10-paginacion');
+  if (rows.length > 0) {
+    const total = rows[0].TotalRegistros;
+    const totalPaginas = Math.ceil(total / 20);
+    $('#r10-pagina-info').textContent = `Página ${pagina} de ${totalPaginas} (${total} registros)`;
+    $('#r10-prev').disabled = pagina <= 1;
+    $('#r10-next').disabled = pagina >= totalPaginas;
+    pag.hidden = false;
+  } else {
+    pag.hidden = true;
+  }
 }
 
 // ==================== INICIALIZAR FILTROS AUXILIARES ====================
@@ -403,32 +548,44 @@ async function inicializarFiltros() {
 }
 
 // ==================== EVENTOS ====================
-$('#r1-buscar').addEventListener('click', () => cargarR1());
+$('#r1-buscar').addEventListener('click', () => cargarR1(1));
 $('#r1-limpiar').addEventListener('click', () => {
-  $('#r1-categoria').value = ''; $('#r1-proveedor').value = ''; cargarR1();
+  $('#r1-categoria').value = ''; $('#r1-proveedor').value = ''; cargarR1(1);
 });
+$('#r1-prev').addEventListener('click', () => cargarR1(r1Pagina - 1));
+$('#r1-next').addEventListener('click', () => cargarR1(r1Pagina + 1));
 
-$('#r2-buscar').addEventListener('click', () => cargarR2());
+$('#r2-buscar').addEventListener('click', () => cargarR2(1));
 $('#r2-limpiar').addEventListener('click', () => {
-  $('#r2-categoria').value = ''; $('#r2-cliente').value = ''; cargarR2();
+  $('#r2-categoria').value = ''; $('#r2-cliente').value = ''; cargarR2(1);
 });
+$('#r2-prev').addEventListener('click', () => cargarR2(r2Pagina - 1));
+$('#r2-next').addEventListener('click', () => cargarR2(r2Pagina + 1));
 
-$('#r3-buscar').addEventListener('click', () => cargarR3());
+$('#r3-buscar').addEventListener('click', () => cargarR3(1));
 $('#r3-limpiar').addEventListener('click', () => {
-  $('#r3-anio-desde').value = ''; $('#r3-anio-hasta').value = ''; cargarR3();
+  $('#r3-anio-desde').value = ''; $('#r3-anio-hasta').value = ''; cargarR3(1);
 });
+$('#r3-prev').addEventListener('click', () => cargarR3(r3Pagina - 1));
+$('#r3-next').addEventListener('click', () => cargarR3(r3Pagina + 1));
 
-$('#r4-buscar').addEventListener('click', () => cargarR4());
+$('#r4-buscar').addEventListener('click', () => cargarR4(1));
 $('#r4-limpiar').addEventListener('click', () => {
-  $('#r4-anio-desde').value = ''; $('#r4-anio-hasta').value = ''; cargarR4();
+  $('#r4-anio-desde').value = ''; $('#r4-anio-hasta').value = ''; cargarR4(1);
 });
+$('#r4-prev').addEventListener('click', () => cargarR4(r4Pagina - 1));
+$('#r4-next').addEventListener('click', () => cargarR4(r4Pagina + 1));
 
-$('#r5-buscar').addEventListener('click', () => cargarR5());
+$('#r5-buscar').addEventListener('click', () => cargarR5(1));
 $('#r5-limpiar').addEventListener('click', () => {
-  $('#r5-anio-desde').value = ''; $('#r5-anio-hasta').value = ''; cargarR5();
+  $('#r5-anio-desde').value = ''; $('#r5-anio-hasta').value = ''; cargarR5(1);
 });
+$('#r5-prev').addEventListener('click', () => cargarR5(r5Pagina - 1));
+$('#r5-next').addEventListener('click', () => cargarR5(r5Pagina + 1));
 
-$('#r6-buscar').addEventListener('click', () => cargarR6());
+$('#r6-buscar').addEventListener('click', () => cargarR6(1));
+$('#r6-prev').addEventListener('click', () => cargarR6(r6Pagina - 1));
+$('#r6-next').addEventListener('click', () => cargarR6(r6Pagina + 1));
 
 $('#r7-buscar').addEventListener('click', () => cargarR7(1));
 $('#r7-limpiar').addEventListener('click', () => {
@@ -456,18 +613,22 @@ $('#r8-grupo').addEventListener('change', () => {
   recargarSubcategorias($('#r8-grupo'), $('#r8-subgrupo'));
 });
 
-$('#r9-buscar').addEventListener('click', () => cargarR9());
+$('#r9-buscar').addEventListener('click', () => cargarR9(1));
 $('#r9-limpiar').addEventListener('click', () => {
   $('#r9-grupo').value = ''; $('#r9-anio').value = ''; $('#r9-proveedor').value = '';
-  cargarR9();
+  cargarR9(1);
 });
+$('#r9-prev').addEventListener('click', () => cargarR9(r9Pagina - 1));
+$('#r9-next').addEventListener('click', () => cargarR9(r9Pagina + 1));
 
-$('#r10-buscar').addEventListener('click', () => cargarR10());
+$('#r10-buscar').addEventListener('click', () => cargarR10(1));
 $('#r10-limpiar').addEventListener('click', () => {
   $('#r10-anio').value = ''; $('#r10-mes').value = '';
   $('#r10-categoria').value = ''; $('#r10-grupo').value = ''; $('#r10-producto').value = '';
-  cargarR10();
+  cargarR10(1);
 });
+$('#r10-prev').addEventListener('click', () => cargarR10(r10Pagina - 1));
+$('#r10-next').addEventListener('click', () => cargarR10(r10Pagina + 1));
 
 // ==================== ARRANQUE ====================
 (async () => {

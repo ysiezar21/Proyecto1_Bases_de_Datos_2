@@ -8,10 +8,15 @@ GO
 -- Reporte 1: montos de compras por categoría y proveedor con ROLLUP
 CREATE OR ALTER PROCEDURE Api.usp_Estadisticas_ComprasProveedores
     @Categoria NVARCHAR(100) = NULL,
-    @Proveedor NVARCHAR(100) = NULL
+    @Proveedor NVARCHAR(100) = NULL,
+    @Pagina INT = 1,
+    @TamanoPagina INT = 10
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    IF @Pagina < 1 SET @Pagina = 1;
+    IF @TamanoPagina < 1 SET @TamanoPagina = 10;
 
     SELECT
         CASE WHEN GROUPING(sc.SupplierCategoryName) = 1 THEN 'Total general'
@@ -22,7 +27,8 @@ BEGIN
         MAX(m.Monto) AS MontoMaximo,
         MIN(m.Monto) AS MontoMinimo,
         CAST(AVG(m.Monto) AS DECIMAL(18,2)) AS MontoPromedio,
-        GROUPING(sc.SupplierCategoryName) + GROUPING(s.SupplierName) AS Nivel
+        GROUPING(sc.SupplierCategoryName) + GROUPING(s.SupplierName) AS Nivel,
+        COUNT(*) OVER() AS TotalRegistros
     FROM Syn.PurchaseOrders po
     INNER JOIN (
         SELECT PurchaseOrderID, SUM(OrderedOuters * ExpectedUnitPricePerOuter) AS Monto
@@ -35,17 +41,25 @@ BEGIN
       AND (@Proveedor IS NULL OR s.SupplierName LIKE '%' + @Proveedor + '%')
     GROUP BY ROLLUP (sc.SupplierCategoryName, s.SupplierName)
     ORDER BY GROUPING(sc.SupplierCategoryName), sc.SupplierCategoryName,
-             GROUPING(s.SupplierName), s.SupplierName;
+             GROUPING(s.SupplierName), s.SupplierName
+    OFFSET (@Pagina - 1) * @TamanoPagina ROWS
+    FETCH NEXT @TamanoPagina ROWS ONLY;
 END
 GO
+
 
 -- Reporte 2: montos de ventas por categoría y cliente con ROLLUP
 CREATE OR ALTER PROCEDURE Api.usp_Estadisticas_VentasClientes
     @Categoria NVARCHAR(100) = NULL,
-    @Cliente NVARCHAR(100) = NULL
+    @Cliente NVARCHAR(100) = NULL,
+    @Pagina INT = 1,
+    @TamanoPagina INT = 10
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    IF @Pagina < 1 SET @Pagina = 1;
+    IF @TamanoPagina < 1 SET @TamanoPagina = 10;
 
     SELECT
         CASE WHEN GROUPING(cc.CustomerCategoryName) = 1 THEN 'Total general'
@@ -56,7 +70,8 @@ BEGIN
         MAX(m.Monto) AS MontoMaximo,
         MIN(m.Monto) AS MontoMinimo,
         CAST(AVG(m.Monto) AS DECIMAL(18,2)) AS MontoPromedio,
-        GROUPING(cc.CustomerCategoryName) + GROUPING(c.CustomerName) AS Nivel
+        GROUPING(cc.CustomerCategoryName) + GROUPING(c.CustomerName) AS Nivel,
+        COUNT(*) OVER() AS TotalRegistros
     FROM Syn.Invoices i
     INNER JOIN (
         SELECT InvoiceID, SUM(ExtendedPrice) AS Monto
@@ -69,7 +84,9 @@ BEGIN
       AND (@Cliente IS NULL OR c.CustomerName LIKE '%' + @Cliente + '%')
     GROUP BY ROLLUP (cc.CustomerCategoryName, c.CustomerName)
     ORDER BY GROUPING(cc.CustomerCategoryName), cc.CustomerCategoryName,
-             GROUPING(c.CustomerName), c.CustomerName;
+             GROUPING(c.CustomerName), c.CustomerName
+    OFFSET (@Pagina - 1) * @TamanoPagina ROWS
+    FETCH NEXT @TamanoPagina ROWS ONLY;
 END
 GO
 
@@ -98,12 +115,18 @@ GO
 -- Reporte 3: top 5 de productos con más ganancia por año con DENSE_RANK
 CREATE OR ALTER PROCEDURE Api.usp_Estadisticas_TopProductos
     @AnioDesde INT = NULL,
-    @AnioHasta INT = NULL
+    @AnioHasta INT = NULL,
+    @Pagina INT = 1,
+    @TamanoPagina INT = 10
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT r.Anio, r.Posicion, si.StockItemName AS Producto, r.Ganancia
+    IF @Pagina < 1 SET @Pagina = 1;
+    IF @TamanoPagina < 1 SET @TamanoPagina = 10;
+
+    SELECT r.Anio, r.Posicion, si.StockItemName AS Producto, r.Ganancia,
+           COUNT(*) OVER() AS TotalRegistros
     FROM (
         SELECT g.Anio, g.StockItemID, g.Ganancia,
                DENSE_RANK() OVER (PARTITION BY g.Anio ORDER BY g.Ganancia DESC) AS Posicion
@@ -118,19 +141,27 @@ BEGIN
     ) r
     INNER JOIN Syn.StockItems si ON si.StockItemID = r.StockItemID
     WHERE r.Posicion <= 5
-    ORDER BY r.Anio, r.Posicion, si.StockItemName;
+    ORDER BY r.Anio, r.Posicion, si.StockItemName, si.StockItemID
+    OFFSET (@Pagina - 1) * @TamanoPagina ROWS
+    FETCH NEXT @TamanoPagina ROWS ONLY;
 END
 GO
 
 -- Reporte 4: top 5 de clientes con más facturas por año con DENSE_RANK
 CREATE OR ALTER PROCEDURE Api.usp_Estadisticas_TopClientes
     @AnioDesde INT = NULL,
-    @AnioHasta INT = NULL
+    @AnioHasta INT = NULL,
+    @Pagina INT = 1,
+    @TamanoPagina INT = 10
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT r.Anio, r.Posicion, c.CustomerName AS Cliente, r.CantidadFacturas, r.MontoTotal
+    IF @Pagina < 1 SET @Pagina = 1;
+    IF @TamanoPagina < 1 SET @TamanoPagina = 10;
+
+    SELECT r.Anio, r.Posicion, c.CustomerName AS Cliente, r.CantidadFacturas, r.MontoTotal,
+           COUNT(*) OVER() AS TotalRegistros
     FROM (
         SELECT g.Anio, g.CustomerID, g.CantidadFacturas, g.MontoTotal,
                DENSE_RANK() OVER (PARTITION BY g.Anio ORDER BY g.CantidadFacturas DESC, g.MontoTotal DESC) AS Posicion
@@ -150,19 +181,27 @@ BEGIN
     ) r
     INNER JOIN Syn.Customers c ON c.CustomerID = r.CustomerID
     WHERE r.Posicion <= 5
-    ORDER BY r.Anio, r.Posicion, c.CustomerName;
+    ORDER BY r.Anio, r.Posicion, c.CustomerName, c.CustomerID
+    OFFSET (@Pagina - 1) * @TamanoPagina ROWS
+    FETCH NEXT @TamanoPagina ROWS ONLY;
 END
 GO
 
 -- Reporte 5: top 5 de proveedores con más órdenes de compra por año con DENSE_RANK
 CREATE OR ALTER PROCEDURE Api.usp_Estadisticas_TopProveedores
     @AnioDesde INT = NULL,
-    @AnioHasta INT = NULL
+    @AnioHasta INT = NULL,
+    @Pagina INT = 1,
+    @TamanoPagina INT = 10
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT r.Anio, r.Posicion, s.SupplierName AS Proveedor, r.CantidadOrdenes, r.MontoTotal
+    IF @Pagina < 1 SET @Pagina = 1;
+    IF @TamanoPagina < 1 SET @TamanoPagina = 10;
+
+    SELECT r.Anio, r.Posicion, s.SupplierName AS Proveedor, r.CantidadOrdenes, r.MontoTotal,
+           COUNT(*) OVER() AS TotalRegistros
     FROM (
         SELECT g.Anio, g.SupplierID, g.CantidadOrdenes, g.MontoTotal,
                DENSE_RANK() OVER (PARTITION BY g.Anio ORDER BY g.CantidadOrdenes DESC, g.MontoTotal DESC) AS Posicion
@@ -182,15 +221,23 @@ BEGIN
     ) r
     INNER JOIN Syn.Suppliers s ON s.SupplierID = r.SupplierID
     WHERE r.Posicion <= 5
-    ORDER BY r.Anio, r.Posicion, s.SupplierName;
+    ORDER BY r.Anio, r.Posicion, s.SupplierName, s.SupplierID
+    OFFSET (@Pagina - 1) * @TamanoPagina ROWS
+    FETCH NEXT @TamanoPagina ROWS ONLY;
 END
 GO
 
+
 -- Reporte 6: matriz de ventas por categoría de producto y año
 CREATE OR ALTER PROCEDURE Api.usp_Estadisticas_MatrizVentas
+    @Pagina INT = 1,
+    @TamanoPagina INT = 10
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    IF @Pagina < 1 SET @Pagina = 1;
+    IF @TamanoPagina < 1 SET @TamanoPagina = 10;
 
     SELECT
         StockGroupName AS Categoria,
@@ -198,7 +245,8 @@ BEGIN
         ISNULL([2014], 0) AS [2014],
         ISNULL([2015], 0) AS [2015],
         ISNULL([2016], 0) AS [2016],
-        ISNULL([2013], 0) + ISNULL([2014], 0) + ISNULL([2015], 0) + ISNULL([2016], 0) AS Total
+        ISNULL([2013], 0) + ISNULL([2014], 0) + ISNULL([2015], 0) + ISNULL([2016], 0) AS Total,
+        COUNT(*) OVER() AS TotalRegistros
     FROM (
         SELECT
             sg.StockGroupName,
@@ -213,9 +261,12 @@ BEGIN
         SUM(Monto)
         FOR Anio IN ([2013], [2014], [2015], [2016])
     ) AS PivotTable
-    ORDER BY StockGroupName;
+    ORDER BY StockGroupName
+    OFFSET (@Pagina - 1) * @TamanoPagina ROWS
+    FETCH NEXT @TamanoPagina ROWS ONLY;
 END
 GO
+
 
 -- Productos para el filtro de productos
 CREATE OR ALTER PROCEDURE Api.usp_Estadisticas_Productos
@@ -384,10 +435,15 @@ GO
 CREATE OR ALTER PROCEDURE Api.usp_Estadisticas_RotacionInventario
     @StockGroupID INT = NULL,
     @Anio INT = NULL,
-    @SupplierID INT = NULL
+    @SupplierID INT = NULL,
+    @Pagina INT = 1,
+    @TamanoPagina INT = 20
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    IF @Pagina < 1 SET @Pagina = 1;
+    IF @TamanoPagina < 1 SET @TamanoPagina = 20;
 
     SELECT
         si.StockItemID,
@@ -410,7 +466,8 @@ BEGIN
             DATEDIFF(DAY, MIN(i.InvoiceDate), MAX(i.InvoiceDate)) * 1.0
             / SUM(il.Quantity)
         AS DECIMAL(10, 2))
-    END AS DiasRotacion
+    END AS DiasRotacion,
+        COUNT(*) OVER() AS TotalRegistros
     FROM Syn.StockItems si
     LEFT JOIN Syn.StockItemHoldings sih ON sih.StockItemID = si.StockItemID
     LEFT JOIN Syn.Suppliers sup ON sup.SupplierID = si.SupplierID
@@ -423,7 +480,9 @@ BEGIN
             WHERE sg2.StockItemID = si.StockItemID AND sg2.StockGroupID = @StockGroupID))
     GROUP BY si.StockItemID, si.StockItemName, sup.SupplierName, sih.QuantityOnHand
     HAVING ISNULL(SUM(il.Quantity), 0) > 0
-    ORDER BY DiasRotacion ASC, si.StockItemName;
+    ORDER BY DiasRotacion ASC, si.StockItemName, si.StockItemID
+    OFFSET (@Pagina - 1) * @TamanoPagina ROWS
+    FETCH NEXT @TamanoPagina ROWS ONLY;
 END
 GO
 
@@ -433,10 +492,15 @@ CREATE OR ALTER PROCEDURE Api.usp_Estadisticas_MetodoEnvioFavorito
     @Mes INT = NULL,
     @CustomerCategoryID INT = NULL,
     @StockGroupID INT = NULL,
-    @StockItemID INT = NULL
+    @StockItemID INT = NULL,
+    @Pagina INT = 1,
+    @TamanoPagina INT = 20
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    IF @Pagina < 1 SET @Pagina = 1;
+    IF @TamanoPagina < 1 SET @TamanoPagina = 20;
 
     WITH VentasFiltradas AS (
         SELECT
@@ -472,12 +536,15 @@ BEGIN
         sp.StateProvinceName AS Estado,
         dm.DeliveryMethodName AS MetodoEnvio,
         c.CantidadVentas,
-        c.Posicion
+        c.Posicion,
+        COUNT(*) OVER() AS TotalRegistros
     FROM Conteo c
     INNER JOIN Syn.Cities city ON city.CityID = c.DeliveryCityID
     LEFT JOIN Application.StateProvinces sp ON sp.StateProvinceID = city.StateProvinceID
     INNER JOIN Syn.DeliveryMethods dm ON dm.DeliveryMethodID = c.DeliveryMethodID
     WHERE c.Posicion = 1
-    ORDER BY c.CantidadVentas DESC, city.CityName;
+    ORDER BY c.CantidadVentas DESC, city.CityName, c.DeliveryCityID, c.DeliveryMethodID
+    OFFSET (@Pagina - 1) * @TamanoPagina ROWS
+    FETCH NEXT @TamanoPagina ROWS ONLY;
 END
 GO
