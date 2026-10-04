@@ -2,7 +2,6 @@ const tbody = document.querySelector('#tabla-inventarios tbody');
 const tabla = document.getElementById('tabla-inventarios');
 const cargando = document.getElementById('cargando');
 const sinResultados = document.getElementById('sin-resultados');
-const errorEl = document.getElementById('error');
 const inputNombre = document.getElementById('filtro-nombre');
 const selectGrupo = document.getElementById('filtro-grupo');
 const paginacion = document.getElementById('paginacion');
@@ -34,7 +33,6 @@ async function cargarFiltros() {
 // Cargar productos aplicando filtros acumulativos y la página actual
 async function cargarProductos() {
   tbody.innerHTML = '';
-  errorEl.textContent = '';
   sinResultados.hidden = true;
   paginacion.hidden = true;
   cargando.hidden = false;
@@ -71,7 +69,7 @@ async function cargarProductos() {
       paginacion.hidden = false;
     }
   } catch (e) {
-    errorEl.textContent = 'Error: ' + e.message;
+    mostrarToast('Error: ' + e.message, 'error');
   } finally {
     cargando.hidden = true;
     tabla.hidden = false;

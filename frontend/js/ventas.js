@@ -2,7 +2,6 @@ const tbody = document.querySelector('#tabla-ventas tbody');
 const tabla = document.getElementById('tabla-ventas');
 const cargando = document.getElementById('cargando');
 const sinResultados = document.getElementById('sin-resultados');
-const errorEl = document.getElementById('error');
 const paginacion = document.getElementById('paginacion');
 const infoPagina = document.getElementById('info-pagina');
 const btnAnterior = document.getElementById('btn-anterior');
@@ -56,11 +55,10 @@ function validarFiltros() {
 
 // Cargar facturas aplicando filtros acumulativos y la página actual
 async function cargarVentas() {
-  errorEl.textContent = '';
 
   const mensaje = validarFiltros();
   if (mensaje) {
-    errorEl.textContent = 'Error: ' + mensaje;
+    mostrarToast('Error: ' + mensaje, 'error');
     return;
   }
 
@@ -107,7 +105,7 @@ async function cargarVentas() {
       paginacion.hidden = false;
     }
   } catch (e) {
-    errorEl.textContent = 'Error: ' + e.message;
+    mostrarToast('Error: ' + e.message, 'error');
   } finally {
     cargando.hidden = true;
     tabla.hidden = false;

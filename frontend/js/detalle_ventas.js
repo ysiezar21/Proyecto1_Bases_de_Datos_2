@@ -2,7 +2,6 @@ const params = new URLSearchParams(window.location.search);
 const id = params.get('id');
 const detalleEl = document.getElementById('detalle');
 const tituloEl = document.getElementById('titulo');
-const errorEl = document.getElementById('error');
 
 function valor(v) {
   return v !== null && v !== undefined && v !== '' ? v : '—';
@@ -15,7 +14,7 @@ function dinero(v) {
 
 async function cargarDetalle() {
   if (!id) {
-    errorEl.textContent = 'Falta el ID de la factura en la URL';
+    mostrarToast('Falta el ID de la factura en la URL', 'error');
     tituloEl.textContent = 'Error';
     return;
   }
@@ -74,7 +73,7 @@ async function cargarDetalle() {
     window.location.href = `venta_form?id=${id}`;
   });
   } catch (err) {
-    errorEl.textContent = 'Error: ' + err.message;
+    mostrarToast('Error: ' + err.message, 'error');
     tituloEl.textContent = 'Error';
   }
 }

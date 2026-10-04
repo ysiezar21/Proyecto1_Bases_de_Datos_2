@@ -4,7 +4,6 @@ const esEdicion = !!id;
 
 const form = document.getElementById('form-inventario');
 const tituloEl = document.getElementById('titulo');
-const errorEl = document.getElementById('error');
 const btnGuardar = document.getElementById('btn-guardar');
 
 const selectProveedor = document.getElementById('proveedor');
@@ -74,13 +73,12 @@ async function inicializar() {
       selectEmpaque.value = p.OuterPackageID ?? '';
     }
   } catch (e) {
-    errorEl.textContent = 'Error cargando datos: ' + e.message;
+    mostrarToast('Error cargando datos: ' + e.message, 'error');
   }
 }
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
-  errorEl.textContent = '';
 
   const nombre = document.getElementById('nombre').value.trim();
   const ubicacion = document.getElementById('ubicacion').value.trim();
@@ -89,15 +87,15 @@ form.addEventListener('submit', async (e) => {
 
   // Validaciones que el HTML no cubre
   if (!nombre) {
-    errorEl.textContent = 'El nombre no puede estar vacío.';
+    mostrarToast('El nombre no puede estar vacío.', 'error');
     return;
   }
   if (!ubicacion) {
-    errorEl.textContent = 'La ubicación no puede estar vacía.';
+    mostrarToast('La ubicación no puede estar vacía.', 'error');
     return;
   }
   if (precioVentaTxt !== '' && parseFloat(precioVentaTxt) < precioUnitario) {
-    errorEl.textContent = 'El precio de venta no puede ser menor al precio unitario.';
+    mostrarToast('El precio de venta no puede ser menor al precio unitario.', 'error');
     return;
   }
 
@@ -126,13 +124,15 @@ form.addEventListener('submit', async (e) => {
   try {
     if (esEdicion) {
       await apiPut(`/api/inventarios/${id}`, body);
+      guardarToast('Producto modificado correctamente');
       window.location.href = `detalle_inventarios?id=${id}`;
     } else {
       const resultado = await apiPost('/api/inventarios', body);
+      guardarToast('Producto creado correctamente');
       window.location.href = `detalle_inventarios?id=${resultado.StockItemID}`;
     }
   } catch (e) {
-    errorEl.textContent = 'Error al guardar: ' + e.message;
+    mostrarToast('Error al guardar: ' + e.message, 'error');
     btnGuardar.disabled = false;
   }
 });

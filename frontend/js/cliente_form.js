@@ -4,7 +4,6 @@ const esEdicion = !!id;
 
 const form = document.getElementById('form-cliente');
 const tituloEl = document.getElementById('titulo');
-const errorEl = document.getElementById('error');
 const btnGuardar = document.getElementById('btn-guardar');
 
 const selectCategoria = document.getElementById('categoria');
@@ -88,13 +87,12 @@ async function inicializar() {
       inputLongitud.value = c.Longitud ?? '';
     }
   } catch (e) {
-    errorEl.textContent = 'Error cargando datos: ' + e.message;
+    mostrarToast('Error cargando datos: ' + e.message, 'error');
   }
 }
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
-  errorEl.textContent = '';
 
   const latitudVacia = inputLatitud.value === '';
   const longitudVacia = inputLongitud.value === '';
@@ -124,11 +122,11 @@ form.addEventListener('submit', async (e) => {
   // Validaciones
   if (!body.nombre || !body.telefono || !body.fax || !body.sitioWeb ||
       !body.direccionEntrega1 || !body.codigoPostal || !body.direccionPostal1) {
-    errorEl.textContent = 'Complete todos los campos obligatorios (*).';
+    mostrarToast('Complete todos los campos obligatorios (*).', 'error');
     return;
   }
   if (latitudVacia !== longitudVacia) {
-    errorEl.textContent = 'La latitud y la longitud se deben indicar juntas.';
+    mostrarToast('La latitud y la longitud se deben indicar juntas.', 'error');
     return;
   }
 
@@ -137,13 +135,15 @@ form.addEventListener('submit', async (e) => {
   try {
     if (esEdicion) {
       await apiPut(`/api/clientes/${id}`, body);
+      guardarToast('Cliente modificado correctamente');
       window.location.href = `detalle_clientes?id=${id}`;
     } else {
       const resultado = await apiPost('/api/clientes', body);
+      guardarToast('Cliente creado correctamente');
       window.location.href = `detalle_clientes?id=${resultado.CustomerID}`;
     }
   } catch (e) {
-    errorEl.textContent = 'Error al guardar: ' + e.message;
+    mostrarToast('Error al guardar: ' + e.message, 'error');
     btnGuardar.disabled = false;
   }
 });

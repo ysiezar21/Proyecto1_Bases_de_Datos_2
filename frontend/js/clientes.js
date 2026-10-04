@@ -2,7 +2,6 @@ const tbody = document.querySelector('#tabla-clientes tbody');
 const tabla = document.getElementById('tabla-clientes');
 const cargando = document.getElementById('cargando');
 const sinResultados = document.getElementById('sin-resultados');
-const errorEl = document.getElementById('error');
 const inputNombre = document.getElementById('filtro-nombre');
 const selectCategoria = document.getElementById('filtro-categoria');
 const selectMetodo = document.getElementById('filtro-metodo');
@@ -42,7 +41,6 @@ async function cargarFiltros() {
 // Cargar clientes aplicando filtros acumulativos y la página actual
 async function cargarClientes() {
   tbody.innerHTML = '';
-  errorEl.textContent = '';
   sinResultados.hidden = true;
   paginacion.hidden = true;
   cargando.hidden = false;
@@ -80,7 +78,7 @@ async function cargarClientes() {
       paginacion.hidden = false;
     }
   } catch (e) {
-    errorEl.textContent = 'Error: ' + e.message;
+    mostrarToast('Error: ' + e.message, 'error');
   } finally {
     cargando.hidden = true;
     tabla.hidden = false;

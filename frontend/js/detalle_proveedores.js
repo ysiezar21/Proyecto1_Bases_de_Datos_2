@@ -2,7 +2,6 @@ const params = new URLSearchParams(window.location.search);
 const id = params.get('id');
 const detalleEl = document.getElementById('detalle');
 const tituloEl = document.getElementById('titulo');
-const errorEl = document.getElementById('error');
 
 function valor(v) {
   return v !== null && v !== undefined && v !== '' ? v : '—';
@@ -10,7 +9,7 @@ function valor(v) {
 
 async function cargarDetalle() {
   if (!id) {
-    errorEl.textContent = 'Falta el ID del proveedor en la URL';
+    mostrarToast('Falta el ID del proveedor en la URL', 'error');
     tituloEl.textContent = 'Error';
     return;
   }
@@ -79,14 +78,14 @@ async function cargarDetalle() {
     });
 
     document.getElementById('btn-eliminar').addEventListener('click', async () => {
-      const confirmar = confirm('¿Seguro que quieres eliminar este proveedor? Esta acción no se puede deshacer.');
+      const confirmar = await confirmarAccion('¿Seguro que quieres eliminar este proveedor? Esta acción no se puede deshacer.');
       if (!confirmar) return;
 
       try {
         await apiDelete(`/api/proveedores/${id}`);
         window.location.href = 'proveedores.html';
       } catch (e) {
-        alert('Error al eliminar: ' + e.message);
+        mostrarToast('Error al eliminar: ' + e.message, 'error');
       }
     });
 
@@ -110,7 +109,7 @@ async function cargarDetalle() {
         '<p style="padding: 1rem; color: #7f8c8d;">Ubicación no disponible</p>';
     }
   } catch (e) {
-    errorEl.textContent = 'Error: ' + e.message;
+    mostrarToast('Error: ' + e.message, 'error');
     tituloEl.textContent = 'Error';
   }
 }

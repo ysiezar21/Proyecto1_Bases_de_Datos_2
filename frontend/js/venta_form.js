@@ -4,7 +4,6 @@ const esEdicion = !!id;
 
 const form = document.getElementById('form-venta');
 const tituloEl = document.getElementById('titulo');
-const errorEl = document.getElementById('error');
 const btnGuardar = document.getElementById('btn-guardar');
 const tbodyLineas = document.getElementById('lineas');
 
@@ -151,7 +150,7 @@ async function inicializar() {
       agregarLinea();
     }
   } catch (e) {
-    errorEl.textContent = 'Error cargando datos: ' + e.message;
+    mostrarToast('Error cargando datos: ' + e.message, 'error');
   } finally {
     cargandoInicial = false;
   }
@@ -161,16 +160,15 @@ async function inicializar() {
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
-  errorEl.textContent = '';
 
   if (inputFecha.value > hoy()) {
-    errorEl.textContent = 'La fecha de la factura no puede ser futura.';
+    mostrarToast('La fecha de la factura no puede ser futura.', 'error');
     return;
   }
 
   const filas = [...tbodyLineas.querySelectorAll('tr')];
   if (filas.length === 0) {
-    errorEl.textContent = 'La factura debe tener al menos un producto.';
+    mostrarToast('La factura debe tener al menos un producto.', 'error');
     return;
   }
 
@@ -183,15 +181,15 @@ form.addEventListener('submit', async (e) => {
     const precio = parseFloat(precioTxt);
 
     if (Number.isNaN(producto)) {
-      errorEl.textContent = `Línea ${i + 1}: seleccione un producto.`;
+      mostrarToast(`Línea ${i + 1}: seleccione un producto.`, 'error');
       return;
     }
     if (!Number.isInteger(cantidad) || cantidad < 1 || cantidad > 100000) {
-      errorEl.textContent = `Línea ${i + 1}: la cantidad debe ser un entero entre 1 y 100000.`;
+      mostrarToast(`Línea ${i + 1}: la cantidad debe ser un entero entre 1 y 100000.`, 'error');
       return;
     }
     if (precioTxt === '' || Number.isNaN(precio) || precio < 0) {
-      errorEl.textContent = `Línea ${i + 1}: el precio unitario no puede estar vacío ni ser negativo.`;
+      mostrarToast(`Línea ${i + 1}: el precio unitario no puede estar vacío ni ser negativo.`, 'error');
       return;
     }
 
@@ -217,13 +215,15 @@ form.addEventListener('submit', async (e) => {
   try {
     if (esEdicion) {
       await apiPut(`/api/ventas/${id}`, body);
+      guardarToast('Factura modificada correctamente');
       window.location.href = `detalle_ventas?id=${id}`;
     } else {
       const resultado = await apiPost('/api/ventas', body);
+      guardarToast('Factura creada correctamente');
       window.location.href = `detalle_ventas?id=${resultado.InvoiceID}`;
     }
   } catch (err) {
-    errorEl.textContent = 'Error al guardar: ' + err.message;
+    mostrarToast('Error al guardar: ' + err.message, 'error');
     btnGuardar.disabled = false;
   }
 });
