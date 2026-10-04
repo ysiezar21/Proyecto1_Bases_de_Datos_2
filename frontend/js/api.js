@@ -1,7 +1,7 @@
 const API_URL = `http://${window.location.hostname}:4000`;
 
 async function apiGet(path) {
-  const res = await fetch(`${API_URL}${path}`);
+  const res = await fetch(API_URL + path);
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error || `Error ${res.status}`);
@@ -10,7 +10,7 @@ async function apiGet(path) {
 }
 
 async function apiPost(path, body) {
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(API_URL + path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
@@ -23,7 +23,7 @@ async function apiPost(path, body) {
 }
 
 async function apiPut(path, body) {
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(API_URL + path, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
@@ -36,7 +36,7 @@ async function apiPut(path, body) {
 }
 
 async function apiDelete(path) {
-  const res = await fetch(`${API_URL}${path}`, { method: 'DELETE' });
+  const res = await fetch(API_URL + path, { method: 'DELETE' });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error || `Error ${res.status}`);
