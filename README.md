@@ -77,20 +77,20 @@ Debe aparecer "WideWorldImporters" en la lista de bases de datos.
 ### 3. Ejecutar los scripts SQL
 
 ```bash
-cd ~/Proyecto1_Bases_de_Datos_2/Script
+desde ~/Proyecto1_Bases_de_Datos_2
 
 # Ejecutar uno por uno
-sqlcmd -S localhost -U sa -P 'CONTRASEÑA_DE_SU_LINUX' -C -d WideWorldImporters -i "01_Setup_y_Modulo_Clientes.sql"
+sqlcmd -S localhost -U sa -P 'CONTRASEÑA_DE_SU_LINUX' -C -d WideWorldImporters -I -i "Script/01_Setup_y_Modulo_Clientes.sql"
 
-sqlcmd -S localhost -U sa -P 'CONTRASEÑA_DE_SU_LINUX' -C -d WideWorldImporters -i "02_Modulo_Proveedores.sql"
+sqlcmd -S localhost -U sa -P 'CONTRASEÑA_DE_SU_LINUX' -C -d WideWorldImporters -I -i "Script/02_Modulo_Proveedores.sql"
 
-sqlcmd -S localhost -U sa -P 'CONTRASEÑA_DE_SU_LINUX' -C -d WideWorldImporters -i "03_Modulo_Inventario.sql"
+sqlcmd -S localhost -U sa -P 'CONTRASEÑA_DE_SU_LINUX' -C -d WideWorldImporters -I -i "Script/03_Modulo_Inventario.sql"
 
-sqlcmd -S localhost -U sa -P 'CONTRASEÑA_DE_SU_LINUX' -C -d WideWorldImporters -i "04_Modulo_Ventas.sql"
+sqlcmd -S localhost -U sa -P 'CONTRASEÑA_DE_SU_LINUX' -C -d WideWorldImporters -I -i "Script/04_Modulo_Ventas.sql"
 
-sqlcmd -S localhost -U sa -P 'CONTRASEÑA_DE_SU_LINUX' -C -d WideWorldImporters -i "05_Modulo_Estadisticas.sql"
+sqlcmd -S localhost -U sa -P 'CONTRASEÑA_DE_SU_LINUX' -C -d WideWorldImporters -I -i "Script/05_Modulo_Estadisticas.sql"
 
-sqlcmd -S localhost -U sa -P 'CONTRASEÑA_DE_SU_LINUX' -C -d WideWorldImporters -i "Common.sql"
+sqlcmd -S localhost -U sa -P 'CONTRASEÑA_DE_SU_LINUX' -C -d WideWorldImporters -I -i "Script/Common.sql"
 ```
 
 Verificar que los procedures se crearon:
