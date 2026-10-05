@@ -134,8 +134,6 @@ async function inicializar() {
     if (esEdicion) {
       tituloEl.textContent = `Editar factura ${id}`;
       document.getElementById('titulo-tab').textContent = `Editar factura ${id}`;
-      document.getElementById('volver').href = `detalle_ventas?id=${id}`;
-      document.getElementById('volver').textContent = '← Volver a la factura';
 
       const { encabezado: e, lineas } = await apiGet(`/api/ventas/${id}`);
       selectCliente.value = e.CustomerID ?? '';
