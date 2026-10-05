@@ -19,7 +19,7 @@ BEGIN
         c.CityID,
         c.CityName + ', ' + sp.StateProvinceName AS CityName
     FROM Syn.Cities c
-    INNER JOIN Application.StateProvinces sp ON sp.StateProvinceID = c.StateProvinceID
+    INNER JOIN Syn.StateProvinces sp ON sp.StateProvinceID = c.StateProvinceID
     WHERE c.LatestRecordedPopulation IS NOT NULL
     ORDER BY sp.StateProvinceName, c.CityName;
 END
